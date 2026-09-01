@@ -1,4 +1,4 @@
-<?php require 'config.php'; $err='';
+<?php require 'config.php'; $err=''; if(isset($_GET['timeout'])) $err='Sessiya muddati tugadi — qayta kiring.';
 if($_POST){
  $l=trim($_POST['login']); $p=trim($_POST['pass']);
  if(!isset($_SESSION['fail_count'])) $_SESSION['fail_count']=0;
@@ -8,7 +8,7 @@ if($_POST){
   if($u && password_verify($p,$u['password'])){
    session_regenerate_id(true);
    unset($_SESSION['fail_count']);
-   $_SESSION['user']=$u; logActivity('login', $u['name'].' tizimga kirdi'); header("Location: reports.php"); exit;
+   $_SESSION['user']=$u; logActivity('login', $u['name'].' tizimga kirdi'); header("Location: dashboard.php"); exit;
   }
  }catch(Exception $e){}
  $_SESSION['fail_count']=($_SESSION['fail_count']??0)+1;

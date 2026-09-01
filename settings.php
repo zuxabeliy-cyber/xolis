@@ -4,7 +4,7 @@ if(!$isSuper) exit;
 
 $msg = '';
 if($_SERVER['REQUEST_METHOD']=='POST'){
- foreach(['channel','bot_token','template','template_winner','admin_chat_id','daily_limit_count','admin_chat_link'] as $k){
+ foreach(['channel','bot_token','template','template_winner','admin_chat_id','daily_limit_count','admin_chat_link','session_timeout_min'] as $k){
   if(isset($_POST[$k])){
    try{
     $st=db()->prepare("INSERT INTO settings (skey,svalue) VALUES (?,?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)");
@@ -32,6 +32,10 @@ $admin_chat_link = getSetting('admin_chat_link');
 $daily_limit_enabled = getSetting('daily_limit_enabled')=='1';
 $daily_limit_count = getSetting('daily_limit_count') ?: '20';
 $baza_sends_channel = getSetting('baza_sends_channel')=='1';
+$session_timeout_min = getSetting('session_timeout_min') ?: '0';
+$cron_token = getSetting('cron_token');
+if($cron_token===''){ $cron_token=bin2hex(random_bytes(8)); try{ db()->prepare("INSERT INTO settings (skey,svalue) VALUES ('cron_token',?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)")->execute([$cron_token]); }catch(Exception $e){} }
+$cronUrl = (isset($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'?'https':'http').'://'.($_SERVER['HTTP_HOST']??'').rtrim(dirname($_SERVER['PHP_SELF']),'/').'/api.php?action=cron_daily&token='.$cron_token;
 
 if(!$template) $template = "1. Diller: {diller}
 2. Ism: {ism}
@@ -92,6 +96,32 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 
 <div class="space-y-4">
+<div class="card p-5 border-[#7c6cff]/20">
+<h3 class="font-bold mb-3 text-sm">🛠 Ma'lumot va xavfsizlik</h3>
+<div class="space-y-3">
+<div>
+<p class="text-xs text-white/50 mb-2">📤 Hisobot va zaxira</p>
+<div class="flex gap-2 flex-wrap">
+<button type="button" onclick="sendMonthReport(this)" class="btn btn-primary btn-sm">📤 Oylik hisobot → Telegram</button>
+<a href="api.php?action=backup" class="btn btn-ghost btn-sm">💾 Backup (JSON)</a>
+<a href="api.php?action=export_csv" class="btn btn-ghost btn-sm">📊 Hammasi Excel</a>
+</div>
+</div>
+<form method="post" class="border-t border-white/5 pt-3">
+<label class="text-xs text-white/50">⏱ Sessiya muddati (daqiqa) — 0 = cheksiz</label>
+<p class="text-[10px] text-white/30 mt-0.5 mb-1">Belgilangan vaqt harakatsizlikdan so'ng avtomatik chiqib ketadi.</p>
+<div class="flex gap-2">
+<input type="number" min="0" name="session_timeout_min" value="<?php echo htmlspecialchars($session_timeout_min); ?>" class="w-28 p-2 rounded-lg bg-black/50 border border-white/10 text-white text-center outline-none">
+<button class="btn btn-ghost btn-sm">Saqlash</button>
+</div>
+</form>
+<div class="border-t border-white/5 pt-3">
+<p class="text-xs text-white/50 mb-1">🌙 Kunlik avtomatik yakun (cron)</p>
+<p class="text-[10px] text-white/30 mb-2">Hosting "Cron Jobs" bo'limida quyidagi manzilni har kuni kechqurun chaqiring — kanalga kunlik yakun avtomatik ketadi:</p>
+<input onclick="this.select()" readonly value="<?php echo htmlspecialchars($cronUrl); ?>" class="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-[#7c6cff] text-[11px] font-mono outline-none">
+</div>
+</div>
+</div>
 <div class="card p-5">
 <h3 class="font-bold mb-3 text-sm">💡 Qanday ishlatish</h3>
 <div class="bg-black/30 p-3 rounded-xl text-xs space-y-1 font-mono">
@@ -122,4 +152,7 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 </div>
 </div>
+<script>
+function sendMonthReport(btn){ if(!confirm("Bu oy hisoboti Telegram kanalga yuborilsinmi?")) return; btn.disabled=true; var o=btn.textContent; btn.textContent='⏳...'; fetch('api.php?action=send_month_report').then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; alert(d.ok?'✅ Yuborildi!':('⚠️ '+(d.msg||'Xatolik'))); }).catch(function(){ btn.disabled=false; btn.textContent=o; alert('⚠️ Tarmoq xatosi'); }); }
+</script>
 <?php include 'layout_footer.php'; ?>

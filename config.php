@@ -7,7 +7,10 @@ define('DB_PASS','Andijon2@');
 function db(){ static $p=null; if($p) return $p; $p=new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=utf8mb4",DB_USER,DB_PASS,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]); return $p; }
 function isLogged(){ return isset($_SESSION['user']); }
 function isSuper(){ return isLogged() && $_SESSION['user']['role']=='super'; }
-function requireLogin(){ if(!isLogged()){ header("Location: login.php"); exit; } }
+function requireLogin(){ if(!isLogged()){ header("Location: login.php"); exit; }
+ $to=(int)getSetting('session_timeout_min');
+ if($to>0){ $now=time(); if(isset($_SESSION['last_activity']) && ($now-$_SESSION['last_activity'])>$to*60){ session_unset(); session_destroy(); header("Location: login.php?timeout=1"); exit; } $_SESSION['last_activity']=$now; }
+}
 function getSetting($k){ try{ $s=db()->prepare("SELECT svalue FROM settings WHERE skey=?"); $s->execute([$k]); $r=$s->fetch(); return $r['svalue']??''; }catch(Exception $e){ return ''; } }
 function sendToChannel($text){ $tok=getSetting('bot_token'); if(!$tok) $tok='8956274863:AAHhy99dkoeAK3RBzCQ4S78GtlWH3F8BLK8'; $chat=getSetting('channel'); if(!$chat) return false; $url="https://api.telegram.org/bot$tok/sendMessage"; $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>['chat_id'=>$chat,'text'=>$text,'parse_mode'=>'HTML'],CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>8]); $r=curl_exec($ch); curl_close($ch); return $r; }
 // "BAZAGA" tugmasi sozlamasi: yoqilgan bo'lsa - BAZAGA bosilganda kanalga ketadi; o'chirilgan bo'lsa - eski usul (O'YINDA kanalga ketadi), faqat BAZAGA tugmasi ekranda birinchi/asosiy bo'lib turadi

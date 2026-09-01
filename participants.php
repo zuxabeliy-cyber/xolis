@@ -57,9 +57,13 @@ try{
 
 <div id="bulkBar" class="card p-3 mb-3 hidden items-center justify-between gap-2 flex-wrap" style="display:none">
 <span class="text-sm"><b id="bulkN" class="text-[#7c6cff]">0</b> ta tanlandi</span>
-<div class="flex gap-2">
+<div class="flex gap-2 flex-wrap">
 <button type="button" onclick="clearSel()" class="btn btn-ghost btn-sm">Bekor</button>
-<button type="button" onclick="bulkTrash()" class="btn btn-danger btn-sm">🗑 Chiqindiga tashlash</button>
+<?php if($isSuper): ?>
+<button type="button" onclick="bulkToggle(1)" class="btn btn-sm" style="background:rgba(124,108,255,.15);border:1px solid rgba(124,108,255,.3);color:#7c6cff">→ O'YINGA</button>
+<button type="button" onclick="bulkToggle(0)" class="btn btn-ghost btn-sm">→ BAZAGA</button>
+<?php endif; ?>
+<button type="button" onclick="bulkTrash()" class="btn btn-danger btn-sm">🗑 Chiqindiga</button>
 </div>
 </div>
 <div class="card overflow-auto"><table class="w-full text-sm"><tr class="bg-black/50 text-white/30 text-xs"><th class="p-3"><input type="checkbox" id="chkAll" onclick="toggleAll(this)" class="w-4 h-4 accent-[#7c6cff]"></th><th class="p-3 text-left">Diller</th><th>Ism</th><th>Nomer</th><th>Operator</th><th>Holat</th><th>Sana / Soat</th><th></th></tr>
@@ -128,6 +132,12 @@ function bulkTrash(){
  var ids=selIds(); if(!ids.length) return;
  if(!confirm(ids.length+" ta nomer chiqindiga tashlansinmi? (keyin tiklash mumkin)")) return;
  fetch('api.php?action=bulk_trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:ids})})
+  .then(function(r){return r.json();}).then(function(d){ if(d.ok){ location.reload(); } else { alert(d.msg||'Xatolik'); } })
+  .catch(function(){ alert('Tarmoq xatosi'); });
+}
+function bulkToggle(val){
+ var ids=selIds(); if(!ids.length) return;
+ fetch('api.php?action=bulk_toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:ids,val:val})})
   .then(function(r){return r.json();}).then(function(d){ if(d.ok){ location.reload(); } else { alert(d.msg||'Xatolik'); } })
   .catch(function(){ alert('Tarmoq xatosi'); });
 }

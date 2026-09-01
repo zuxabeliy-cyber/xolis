@@ -31,6 +31,7 @@ function icon($name,$class='w-4 h-4'){
 }
 ?>
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0a0a12"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="XOLIS"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="logo.png">
 <script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Manrope:wght@500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -202,7 +203,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="flex gap-3 items-center"><img src="logo.png" class="w-12 h-12 object-contain"><div><div class="flex items-center gap-1.5"><p class="font-bold"><?php echo htmlspecialchars($u['name']); ?></p><span class="inline-flex items-center text-[#f5a623] <?php echo $isSuper?'':'text-[#7c6cff]'; ?>"><?php echo icon($isSuper?'crown':'shield','w-3.5 h-3.5'); ?></span></div><p class="text-xs font-bold text-[#7c6cff]" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.1em"><?php echo $isSuper ? 'BOSH ADMIN' : 'DILLER'; ?></p></div></div>
 <a href="logout.php" title="Chiqish" class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/15 text-red-300 flex items-center justify-center shrink-0"><?php echo icon('logout','w-4 h-4'); ?></a>
 </div>
+<form action="participants.php" method="get" class="p-3 pb-0"><input name="q" placeholder="🔍 Nomer yoki ism qidirish..." class="w-full p-3 rounded-xl bg-black/50 border border-white/10 text-white text-sm outline-none focus:border-[#7c6cff]/50"></form>
 <nav class="p-3 space-y-1">
+<a href="dashboard.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('dashboard.php'); ?>"><?php echo icon('package'); ?> Bosh sahifa</a>
 <a href="reports.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('reports.php'); ?>"><?php echo icon('chart'); ?> Statistika</a>
 <a href="participants.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('participants.php'); ?>"><?php echo icon('list'); ?> Ro'yxat</a>
 <a href="balance.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('balance.php'); ?>"><?php echo icon('wallet'); ?> So'm</a>
@@ -232,6 +235,7 @@ setInterval(pollChatDot, 15000);
 function updThemeIcon(){ var b=document.getElementById('themeBtn'); if(b) b.textContent=document.documentElement.classList.contains('light')?'☀️':'🌙'; }
 function toggleTheme(){ var h=document.documentElement; h.classList.toggle('light'); try{ localStorage.setItem('theme', h.classList.contains('light')?'light':'dark'); }catch(e){} updThemeIcon(); }
 updThemeIcon();
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 
 function confettiBurst(x, y){
  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

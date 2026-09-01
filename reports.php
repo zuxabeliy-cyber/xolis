@@ -552,7 +552,7 @@ function renderDealerCards(rows){
   const daysSince=isNaN(lastDt)?null:Math.floor((Date.now()-lastDt.getTime())/86400000);
   const activeDot=(daysSince!==null&&daysSince<=3)?'<span class="w-2 h-2 rounded-full bg-[#7c6cff] inline-block mr-1"></span>':'<span class="w-2 h-2 rounded-full bg-white/20 inline-block mr-1"></span>';
   html+=`<div class="dealer-card card p-5 card-hover" data-search="${escapeHtml(name.toLowerCase())}">
-   <div class="flex justify-between items-center mb-3"><b class="text-base text-[#7c6cff] cursor-pointer hover:underline" onclick="openModalFor('dealer','${jsEsc(name)}')">${escapeHtml(name)}</b><span class="bg-white text-black text-[11px] px-3 py-1 rounded-full font-black">${s.total} ta</span></div>
+   <div class="flex justify-between items-center mb-3"><b class="text-base text-[#7c6cff] cursor-pointer hover:underline" onclick="openModalFor('dealer','${jsEsc(name)}')">${idx<3?['🥇','🥈','🥉'][idx]+' ':''}${escapeHtml(name)}</b><span class="bg-white text-black text-[11px] px-3 py-1 rounded-full font-black">${s.total} ta</span></div>
    <div class="grid grid-cols-2 gap-2 mb-3 text-[11px]"><div class="bg-[#7c6cff]/10 p-2 rounded-lg text-center">O'yinda: <b class="text-[#7c6cff] text-sm">${s.paid}</b></div><div class="bg-white/5 p-2 rounded-lg text-center">Bazada: <b class="text-sm">${s.free}</b></div></div>
    <div class="bg-black/30 border border-white/5 rounded-xl p-3 mb-3 text-[11px] space-y-1">
     <p>📡 Eng ko'p ulagan operator: <b class="text-[#7c6cff]">${topOp?escapeHtml(topOp[0]):'-'}</b> ${topOp?`(${topOp[1]} ta)`:''}</p>

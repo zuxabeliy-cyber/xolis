@@ -40,6 +40,12 @@ $allList=[]; foreach($allListRaw as $r){ $times = max(1,intval($r['promo_count']
  <div id="win" class="mt-6 max-w-sm mx-auto"></div>
 </div>
 
+<div id="celebrate" onclick="closeCelebrate()" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(5,5,12,.93);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;cursor:pointer">
+ <p style="font-family:'IBM Plex Mono',monospace;letter-spacing:.3em;color:#f5a623;font-size:13px;margin-bottom:14px">🏆 G'OLIB ANIQLANDI</p>
+ <div id="celebNames"></div>
+ <p style="color:rgba(255,255,255,.4);font-size:12px;margin-top:28px">Yopish uchun bosing</p>
+</div>
+
 <script>
 var allList = <?php echo json_encode($allList, JSON_UNESCAPED_UNICODE); ?>;
 var ymSel = <?php echo json_encode($ym); ?>;
@@ -115,6 +121,15 @@ function confirmAll(){
  Promise.all(ws.map(function(w){ return fetch('winner.php?phone='+encodeURIComponent(w.phone)).catch(function(){}); }))
   .then(function(){ window.location='winners.php'; });
 }
+function playWin(){ try{ var A=new (window.AudioContext||window.webkitAudioContext)(); var notes=[523,659,784,1047]; notes.forEach(function(f,i){ var o=A.createOscillator(),g=A.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(A.destination); var t=A.currentTime+i*0.15; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t+0.45); o.start(t); o.stop(t+0.47); }); }catch(e){} }
+function showCelebration(winners){
+ var c=document.getElementById('celebrate'); var n=document.getElementById('celebNames'); if(!c) return;
+ var medals=['🥇','🥈','🥉'];
+ n.innerHTML=winners.map(function(w,i){ var big=winners.length>1?'1.7rem':'2.6rem'; return '<p style="font-family:\'Fraunces\',serif;font-weight:900;font-size:'+big+';line-height:1.15;margin:4px 0;background:linear-gradient(90deg,#7c6cff,#ffcf7a);-webkit-background-clip:text;background-clip:text;color:transparent">'+(medals[i]||'')+' '+esc(w.name)+'</p><p style="font-family:\'IBM Plex Mono\',monospace;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:12px">'+esc(w.pretty_phone)+' • '+esc(w.tarif_name)+'</p>'; }).join('');
+ c.style.display='flex'; playWin();
+ var i=0; var iv=setInterval(function(){ confettiBurst(Math.random()*window.innerWidth, window.innerHeight*0.28); if(++i>5) clearInterval(iv); },400);
+}
+function closeCelebrate(){ var c=document.getElementById('celebrate'); if(c) c.style.display='none'; }
 function logSpin(winners){
  try{ fetch('api.php?action=log_spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ym:ymSel,pool:pool,winners:winners.map(function(w){return {name:w.name,phone:w.phone};})})}); }catch(e){}
 }
@@ -149,6 +164,7 @@ function spin(){
    if(countEl) countEl.textContent=list.length+" ta ishtirokchi";
    renderWinners(winners);
    logSpin(winners);
+   showCelebration(winners);
    var boxRect=box.getBoundingClientRect();
    confettiBurst(boxRect.left+boxRect.width/2, boxRect.top+boxRect.height/2);
   }
