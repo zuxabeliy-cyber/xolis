@@ -250,18 +250,17 @@ function availableMonths(){
  $cur=date('Y-m'); if(!in_array($cur,$out,true)) array_unshift($out,$cur);
  return $out;
 }
-// Sahifa tepasidagi oy tanlagich UI. $extra - saqlanishi kerak bo'lgan boshqa GET parametrlar (masalan qidiruv)
+// Sahifa tepasidagi oy tanlagich UI - bitta ochiladigan ro'yxat (dropdown). $extra - saqlanadigan boshqa GET parametrlar
 function monthSelectorHtml($selected,$extra=[]){
  $months=availableMonths();
- $mk=function($ym) use($extra){ $p=$extra; $p['ym']=$ym; return '?'.http_build_query($p); };
- $h='<div class="card p-3 mb-4 flex items-center gap-2 flex-wrap">';
- $h.='<span class="text-[11px] text-white/40 tracking-widest font-bold mr-1">📅 OY:</span>';
- foreach($months as $m){
-  $a=($selected===$m);
-  $h.='<a href="'.htmlspecialchars($mk($m)).'" class="px-3 py-1.5 rounded-lg text-xs font-bold '.($a?'bg-[#7c6cff] text-white shadow-lg':'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10').'">'.htmlspecialchars(monthLabel($m)).'</a>';
- }
- $a=($selected==='all');
- $h.='<a href="'.htmlspecialchars($mk('all')).'" class="px-3 py-1.5 rounded-lg text-xs font-bold '.($a?'bg-[#f5a623] text-black':'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10').'">Hammasi</a>';
+ $opts='';
+ foreach($months as $m){ $opts.='<option value="'.htmlspecialchars($m).'"'.($selected===$m?' selected':'').'>'.htmlspecialchars(monthLabel($m)).'</option>'; }
+ $opts.='<option value="all"'.($selected==='all'?' selected':'').'>Barcha oylar</option>';
+ $ej=json_encode((object)$extra, JSON_UNESCAPED_UNICODE);
+ $uid='ms'.substr(md5(uniqid('',true)),0,6);
+ $h='<div class="card p-3 mb-4 flex items-center gap-2">';
+ $h.='<span class="text-[11px] text-white/40 tracking-widest font-bold whitespace-nowrap">📅 OY:</span>';
+ $h.='<select id="'.$uid.'" onchange="(function(v){var p=new URLSearchParams('.$ej.');p.set(\'ym\',v);window.location=window.location.pathname+\'?\'+p.toString();})(this.value)" class="flex-1 bg-[#16162a] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-[#7c6cff]/50">'.$opts.'</select>';
  $h.='</div>';
  return $h;
 }

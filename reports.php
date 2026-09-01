@@ -68,18 +68,29 @@ foreach($opFileMap as $opName=>$slug){
 </div>
 <?php endif; ?>
 <div class="card p-4 my-4 flex flex-wrap gap-2 items-center">
-<div class="flex gap-2 flex-wrap">
-<a href="?f=all&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='all'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">Hammasi</a>
-<a href="?f=today&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='today'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">Bugun</a>
-<a href="?f=yesterday&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='yesterday'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">Kecha</a>
-<a href="?f=week&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='week'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">1 Hafta</a>
-<a href="?f=month&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='month'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">1 Oy</a>
-<a href="?f=year&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='year'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">Yillik</a>
-<form class="inline-flex"><input type="hidden" name="dealer_id" value="<?php echo $did; ?>"><input type="hidden" name="ym" value="<?php echo htmlspecialchars($ym); ?>"><input type="hidden" name="f" value="days"><select name="days" onchange="this.form.submit()" class="bg-[#16162a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"><option value="">Kunlar (1-10)</option><?php for($i=1;$i<=10;$i++): ?><option value="<?php echo $i; ?>" <?php echo ($f=='days'&&$days==$i)?'selected':''; ?>><?php echo $i; ?> kun</option><?php endfor; ?></select></form>
-</div>
+<span class="text-[11px] text-white/40 tracking-widest font-bold whitespace-nowrap">DAVR:</span>
+<select onchange="periodGo(this.value)" class="bg-[#16162a] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-[#7c6cff]/50 flex-1 min-w-[150px]">
+ <option value="f=all" <?php echo $f=='all'?'selected':''; ?>>Hammasi</option>
+ <option value="f=today" <?php echo $f=='today'?'selected':''; ?>>Bugun</option>
+ <option value="f=yesterday" <?php echo $f=='yesterday'?'selected':''; ?>>Kecha</option>
+ <option value="f=week" <?php echo $f=='week'?'selected':''; ?>>1 hafta</option>
+ <option value="f=month" <?php echo $f=='month'?'selected':''; ?>>1 oy</option>
+ <option value="f=year" <?php echo $f=='year'?'selected':''; ?>>Yillik</option>
+ <optgroup label="Oxirgi kunlar">
+ <?php for($i=1;$i<=10;$i++): ?><option value="f=days&days=<?php echo $i; ?>" <?php echo ($f=='days'&&$days==$i)?'selected':''; ?>>Oxirgi <?php echo $i; ?> kun</option><?php endfor; ?>
+ </optgroup>
+</select>
 <?php if($isSuper): ?>
-<form class="ml-auto flex gap-2"><input type="hidden" name="f" value="<?php echo htmlspecialchars($f); ?>"><input type="hidden" name="days" value="<?php echo $days; ?>"><input type="hidden" name="ym" value="<?php echo htmlspecialchars($ym); ?>"><select name="dealer_id" onchange="this.form.submit()" class="bg-[#16162a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"><option value="0">Barcha dillerlar</option><?php foreach($allDealers as $d): ?><option value="<?php echo $d['id']; ?>" <?php echo $did==$d['id']?'selected':''; ?>><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?></select></form>
+<select onchange="dealerGo(this.value)" class="bg-[#16162a] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-[#7c6cff]/50 flex-1 min-w-[150px]">
+ <option value="0">Barcha dillerlar</option>
+ <?php foreach($allDealers as $d): ?><option value="<?php echo $d['id']; ?>" <?php echo $did==$d['id']?'selected':''; ?>><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?>
+</select>
 <?php endif; ?>
+<script>
+var _did=<?php echo intval($did); ?>, _ym=<?php echo json_encode($ym); ?>, _f=<?php echo json_encode($f); ?>, _days=<?php echo intval($days); ?>;
+function periodGo(v){ var p=new URLSearchParams(v); p.set('dealer_id',_did); p.set('ym',_ym); window.location='?'+p.toString(); }
+function dealerGo(v){ var p=new URLSearchParams(); p.set('f',_f); if(_f==='days')p.set('days',_days); p.set('ym',_ym); p.set('dealer_id',v); window.location='?'+p.toString(); }
+</script>
 </div>
 
 <form class="card p-3 mb-4 flex flex-wrap gap-3 items-end" method="get">
