@@ -23,17 +23,17 @@ function fmtS($n){ return number_format($n,0,'.',' '); }
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
- <a href="reports.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">BUGUN</p><p class="text-3xl font-black mt-1 text-[#7c6cff]"><?php echo $today; ?></p><p class="text-[10px] text-white/25 mt-1">ta qo'shildi</p></a>
- <a href="reports.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">BU OY JAMI</p><p class="text-3xl font-black mt-1"><?php echo $monthTot; ?></p><p class="text-[10px] text-white/25 mt-1">ishtirokchi</p></a>
- <a href="<?php echo $isSuper?'index.php':'reports.php'; ?>" class="card p-4 card-hover border-[#7c6cff]/15"><p class="text-[10px] text-[#7c6cff] tracking-widest">O'YINDA</p><p class="text-3xl font-black mt-1 text-[#7c6cff]"><?php echo $monthGame; ?></p><p class="text-[10px] text-white/25 mt-1">barabanda</p></a>
- <a href="participants.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">BAZADA</p><p class="text-3xl font-black mt-1"><?php echo $monthBaza; ?></p><p class="text-[10px] text-white/25 mt-1">o'yinga kutilyapti</p></a>
+ <a href="reports.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">BUGUN</p><p class="text-3xl font-black mt-1 text-[#7c6cff]" data-count="<?php echo $today; ?>">0</p><p class="text-[10px] text-white/25 mt-1">ta qo'shildi</p></a>
+ <a href="reports.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">BU OY JAMI</p><p class="text-3xl font-black mt-1" data-count="<?php echo $monthTot; ?>">0</p><p class="text-[10px] text-white/25 mt-1">ishtirokchi</p></a>
+ <a href="<?php echo $isSuper?'index.php':'reports.php'; ?>" class="card p-4 card-hover border-[#7c6cff]/15"><p class="text-[10px] text-[#7c6cff] tracking-widest">O'YINDA</p><p class="text-3xl font-black mt-1 text-[#7c6cff]" data-count="<?php echo $monthGame; ?>">0</p><p class="text-[10px] text-white/25 mt-1">barabanda</p></a>
+ <a href="participants.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">BAZADA</p><p class="text-3xl font-black mt-1" data-count="<?php echo $monthBaza; ?>">0</p><p class="text-[10px] text-white/25 mt-1">o'yinga kutilyapti</p></a>
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
- <a href="balance.php" class="card p-4 card-hover md:col-span-2"><p class="text-[10px] text-white/30 tracking-widest">BU OY SUMMA</p><p class="text-2xl font-black mt-1 grad-text"><?php echo fmtS($som); ?> <span class="text-sm">so'm</span></p></a>
+ <a href="balance.php" class="card sheen p-4 card-hover md:col-span-2"><p class="text-[10px] text-white/30 tracking-widest">BU OY SUMMA</p><p class="text-2xl font-black mt-1 grad-text"><?php echo fmtS($som); ?> <span class="text-sm">so'm</span></p></a>
  <?php if($isSuper): ?>
- <a href="pending.php" class="card p-4 card-hover <?php echo $pend>0?'border-[#f5a623]/25':''; ?>"><p class="text-[10px] text-white/30 tracking-widest">KUTILMOQDA</p><p class="text-3xl font-black mt-1 <?php echo $pend>0?'text-[#f5a623]':''; ?>"><?php echo $pend; ?></p></a>
- <a href="trash.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">CHIQINDI</p><p class="text-3xl font-black mt-1"><?php echo $trash; ?></p></a>
+ <a href="pending.php" class="card p-4 card-hover <?php echo $pend>0?'border-[#f5a623]/25':''; ?>"><p class="text-[10px] text-white/30 tracking-widest">KUTILMOQDA</p><p class="text-3xl font-black mt-1 <?php echo $pend>0?'text-[#f5a623]':''; ?>" data-count="<?php echo $pend; ?>">0</p></a>
+ <a href="trash.php" class="card p-4 card-hover"><p class="text-[10px] text-white/30 tracking-widest">CHIQINDI</p><p class="text-3xl font-black mt-1" data-count="<?php echo $trash; ?>">0</p></a>
  <?php endif; ?>
 </div>
 

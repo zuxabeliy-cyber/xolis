@@ -191,13 +191,15 @@ if($a=='detect_group'){
  echo json_encode(['ok'=>true,'id'=>$id]); exit;
 }
 
-// Guruhga qo'lda kunlik hisobot yuborish (faqat Bosh admin)
+// Guruhga qo'lda hisobot yuborish — istalgan davr (mode=day|month|all|range)
 if($a=='send_group_report'){
  header('Content-Type: application/json; charset=utf-8');
  if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
- $date=(isset($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/',$_GET['date'])) ? $_GET['date'] : date('Y-m-d');
- $res=sendDayReportToGroup($date);
- logActivity('report',"Qo'lda kunlik hisobot ($date) → guruh: ".($res['ok']?'OK':($res['msg']??'xato')));
+ $mode=$_GET['mode'] ?? 'day';
+ if(!in_array($mode,['day','month','all','range'],true)) $mode='day';
+ list($from,$to)=reportRangeForMode($mode,$_GET);
+ $res=sendReportToGroup($from,$to);
+ logActivity('report',"Qo'lda hisobot [$mode] $from..$to → guruh: ".($res['ok']?'OK':($res['msg']??'xato')));
  echo json_encode($res); exit;
 }
 

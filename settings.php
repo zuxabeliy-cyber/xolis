@@ -110,10 +110,12 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 </form>
 <div class="border-t border-white/5 pt-3 mt-3">
-<p class="text-xs text-white/50 mb-2">📤 Guruhga qo'lda hisobot yuborish (00:00 dan oldin ham)</p>
-<div class="flex gap-2 flex-wrap items-center">
-<input type="date" id="rdate" value="<?php echo date('Y-m-d'); ?>" max="<?php echo date('Y-m-d'); ?>" class="p-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm outline-none">
-<button type="button" onclick="sendGroupReport(this)" class="btn btn-primary btn-sm">📤 Guruhga yuborish</button>
+<p class="text-xs text-white/50 mb-2">📤 Guruhga qo'lda hisobot (00:00 dan oldin ham) — <b>istalgan davr</b></p>
+<div class="space-y-2">
+ <div class="flex gap-2 flex-wrap items-center"><input type="date" id="rdate" value="<?php echo date('Y-m-d'); ?>" max="<?php echo date('Y-m-d'); ?>" class="p-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm outline-none"><button type="button" onclick="sendGroupReport('day')" class="btn btn-primary btn-sm">📅 Kunlik</button></div>
+ <div class="flex gap-2 flex-wrap items-center"><input type="month" id="rmonth" value="<?php echo date('Y-m'); ?>" class="p-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm outline-none"><button type="button" onclick="sendGroupReport('month')" class="btn btn-ghost btn-sm">🗓 Oylik</button></div>
+ <div class="flex gap-2 flex-wrap items-center"><input type="date" id="rfrom" max="<?php echo date('Y-m-d'); ?>" class="p-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm outline-none"><span class="text-white/30 text-xs">—</span><input type="date" id="rto" max="<?php echo date('Y-m-d'); ?>" class="p-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm outline-none"><button type="button" onclick="sendGroupReport('range')" class="btn btn-ghost btn-sm">📆 Oraliq</button></div>
+ <button type="button" onclick="sendGroupReport('all')" class="btn btn-ghost btn-sm">♾️ Hammasi (butun davr)</button>
 </div>
 <p id="rgmsg" class="text-[11px] mt-2"></p>
 </div>
@@ -124,10 +126,10 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 <div>
 <p class="text-xs text-white/50 mb-2">📤 Hisobot va zaxira</p>
 <div class="flex gap-2 flex-wrap">
-<button type="button" onclick="sendMonthReport(this)" class="btn btn-primary btn-sm">📤 Oylik hisobot → Telegram</button>
 <a href="api.php?action=backup" class="btn btn-ghost btn-sm">💾 Backup (JSON)</a>
 <a href="api.php?action=export_csv" class="btn btn-ghost btn-sm">📊 Hammasi Excel</a>
 </div>
+<p class="text-[10px] text-white/30 mt-1">Hisobotlar (kunlik/oylik/hammasi) yuqoridagi <b>Hisobot guruhi</b> bo'limidan guruhga yuboriladi.</p>
 </div>
 <form method="post" class="border-t border-white/5 pt-3">
 <label class="text-xs text-white/50">⏱ Sessiya muddati (daqiqa) — 0 = cheksiz</label>
@@ -177,6 +179,15 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 <script>
 function sendMonthReport(btn){ if(!confirm("Bu oy hisoboti Telegram kanalga yuborilsinmi?")) return; btn.disabled=true; var o=btn.textContent; btn.textContent='⏳...'; fetch('api.php?action=send_month_report').then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; alert(d.ok?'✅ Yuborildi!':('⚠️ '+(d.msg||'Xatolik'))); }).catch(function(){ btn.disabled=false; btn.textContent=o; alert('⚠️ Tarmoq xatosi'); }); }
 function detectGroup(btn){ btn.disabled=true; var o=btn.textContent; btn.textContent='⏳ Aniqlanmoqda...'; fetch('api.php?action=detect_group').then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; if(d.ok){ document.getElementById('rg').value=d.id; alert('✅ Guruh topildi: '+d.id+'\nSaqlash tugmasini bosishga hojat yo\'q, avtomatik saqlandi.'); } else { alert('⚠️ '+(d.msg||'Topilmadi')); } }).catch(function(){ btn.disabled=false; btn.textContent=o; alert('⚠️ Tarmoq xatosi'); }); }
-function sendGroupReport(btn){ var dt=document.getElementById('rdate').value; if(!confirm(dt+" hisoboti guruhga yuborilsinmi?")) return; btn.disabled=true; var o=btn.textContent; btn.textContent='⏳...'; var m=document.getElementById('rgmsg'); m.textContent=''; fetch('api.php?action=send_group_report&date='+encodeURIComponent(dt)).then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; m.style.color=d.ok?'#7c6cff':'#f87171'; m.textContent=d.ok?'✅ Guruhga yuborildi (matn + Excel)!':('⚠️ '+(d.msg||'Xatolik')); }).catch(function(){ btn.disabled=false; btn.textContent=o; m.style.color='#f87171'; m.textContent='⚠️ Tarmoq xatosi'; }); }
+function sendGroupReport(mode){
+ var q='action=send_group_report&mode='+mode;
+ if(mode==='day'){ q+='&date='+encodeURIComponent(document.getElementById('rdate').value); }
+ else if(mode==='month'){ q+='&ym='+encodeURIComponent(document.getElementById('rmonth').value); }
+ else if(mode==='range'){ var f=document.getElementById('rfrom').value,t=document.getElementById('rto').value; if(!f||!t){ alert('Oraliq uchun ikkala sanani tanlang'); return; } q+='&from='+encodeURIComponent(f)+'&to='+encodeURIComponent(t); }
+ var labels={day:'Kunlik',month:'Oylik',range:'Oraliq',all:'Hammasi (butun davr)'};
+ if(!confirm(labels[mode]+" hisobot guruhga yuborilsinmi? (matn + Excel)")) return;
+ var m=document.getElementById('rgmsg'); m.style.color=''; m.textContent='⏳ Yuborilmoqda... (bir necha soniya)';
+ fetch('api.php?'+q).then(function(r){return r.json();}).then(function(d){ m.style.color=d.ok?'#7c6cff':'#f87171'; m.textContent=d.ok?'✅ Guruhga yuborildi (matn + Excel)!':('⚠️ '+(d.msg||'Xatolik')); }).catch(function(){ m.style.color='#f87171'; m.textContent='⚠️ Tarmoq xatosi'; });
+}
 </script>
 <?php include 'layout_footer.php'; ?>

@@ -190,6 +190,25 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .light .btn-ghost{ background:rgba(20,20,50,.05); border-color:rgba(20,20,50,.12); color:#1c1d2b; }
 .light .bg-white{ background:#1c1d2b !important; }
 .light .text-black{ color:#ffffff !important; }
+
+/* === 4D / animatsiya / yorqinlik === */
+body.bg-mesh::before{ content:''; position:fixed; inset:-25%; z-index:-1; pointer-events:none;
+ background:radial-gradient(circle at 20% 25%, rgba(124,108,255,.20), transparent 42%), radial-gradient(circle at 82% 72%, rgba(245,166,35,.14), transparent 42%), radial-gradient(circle at 55% 95%, rgba(154,141,255,.14), transparent 45%);
+ filter:blur(50px); animation:aurora 20s ease-in-out infinite alternate; }
+.light body.bg-mesh::before{ opacity:.5; }
+@keyframes aurora{ 0%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(4%,-3%) scale(1.12); } 100%{ transform:translate(-4%,3%) scale(1.06); } }
+.card-hover{ transform-style:preserve-3d; will-change:transform; }
+.card-hover:hover{ border-color:rgba(124,108,255,.45); box-shadow:0 18px 50px -14px rgba(124,108,255,.45), 0 0 0 1px rgba(124,108,255,.15) inset; }
+.btn-primary{ background-size:200% auto; animation:btnflow 5s ease-in-out infinite; }
+@keyframes btnflow{ 0%,100%{ background-position:0% center; } 50%{ background-position:100% center; } }
+.grad-text{ text-shadow:0 0 26px rgba(124,108,255,.35); }
+#drum{ box-shadow:0 0 90px -10px rgba(124,108,255,.5), inset 0 0 50px rgba(0,0,0,.75), 0 0 0 9px rgba(245,166,35,.12), 0 0 0 10px rgba(245,166,35,.4) !important; }
+.kpi-pop{ animation:kpiPop .6s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes kpiPop{ from{ opacity:0; transform:scale(.85) translateY(10px); } to{ opacity:1; transform:scale(1) translateY(0); } }
+.sheen{ position:relative; overflow:hidden; }
+.sheen::after{ content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(115deg,transparent,rgba(255,255,255,.14),transparent); transform:skewX(-18deg); animation:sheen 5.5s ease-in-out infinite; }
+@keyframes sheen{ 0%{ left:-60%; } 35%,100%{ left:130%; } }
+@media (prefers-reduced-motion:reduce){ body.bg-mesh::before,.btn-primary,.sheen::after{ animation:none !important; } }
 </style>
 <script>try{ if(localStorage.getItem('theme')==='light') document.documentElement.classList.add('light'); }catch(e){}</script>
 </head><body class="bg-mesh min-h-screen">
@@ -236,6 +255,25 @@ function updThemeIcon(){ var b=document.getElementById('themeBtn'); if(b) b.text
 function toggleTheme(){ var h=document.documentElement; h.classList.toggle('light'); try{ localStorage.setItem('theme', h.classList.contains('light')?'light':'dark'); }catch(e){} updThemeIcon(); }
 updThemeIcon();
 if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+
+// === 4D karta tilt (sichqoncha bilan) ===
+(function(){
+ if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+ if(window.matchMedia && window.matchMedia('(hover: none)').matches) return; // telefonlarda o'chirilgan
+ function bind(){ document.querySelectorAll('.card-hover').forEach(function(c){ if(c._tilt) return; c._tilt=1;
+  c.addEventListener('mousemove',function(e){ var r=c.getBoundingClientRect(); var x=(e.clientX-r.left)/r.width-0.5, y=(e.clientY-r.top)/r.height-0.5; c.style.transform='perspective(800px) rotateY('+(x*7).toFixed(2)+'deg) rotateX('+(-y*7).toFixed(2)+'deg) translateY(-4px)'; });
+  c.addEventListener('mouseleave',function(){ c.style.transform=''; });
+ }); }
+ document.addEventListener('DOMContentLoaded',bind); bind();
+})();
+// === Raqamlar animatsiyasi (count-up) ===
+(function(){
+ function run(){ document.querySelectorAll('[data-count]').forEach(function(el){ if(el._done) return; el._done=1; var target=parseFloat(el.getAttribute('data-count'))||0; if(target<=0){ el.textContent='0'; return; } var dur=900,start=null;
+  function step(now){ if(!start) start=now; var p=Math.min((now-start)/dur,1); var v=Math.floor(target*(1-Math.pow(1-p,3))); el.textContent=v.toLocaleString('ru-RU'); if(p<1) requestAnimationFrame(step); else el.textContent=Math.round(target).toLocaleString('ru-RU'); }
+  requestAnimationFrame(step);
+ }); }
+ document.addEventListener('DOMContentLoaded',run); run();
+})();
 
 function confettiBurst(x, y){
  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
