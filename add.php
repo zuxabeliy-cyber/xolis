@@ -30,6 +30,7 @@ if($_POST){
    if($isSuper){
     // Bosh admin o'zi qo'shsa - to'g'ridan bazaga tushadi, sozlamaga qarab shu zahoti kanalga ketishi mumkin
     db()->prepare("INSERT INTO paid_participants (phone,pretty_phone,name,operator_name,tarif_name,is_paid,dealer_id,status,approved_by,approved_at,created_at,promo_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")->execute([$ph,$pretty,$name,$op,$tar,$is_paid,$did,'approved',$u['id'],date('Y-m-d H:i:s'),$createdAt,$promo]);
+    logActivity('add', "Qo'shildi: $name $pretty ($op / $tar)".($is_paid?" • O'YINGA":" • BAZAGA"));
     if(shouldSendToChannel($is_paid)){
      try{ $s=db()->prepare("SELECT name FROM dealers WHERE id=?"); $s->execute([$did]); $dname=$s->fetchColumn()?:$u['name']; }catch(Exception $e){ $dname=$u['name']; }
      $tpl=getSetting('template'); if(!$tpl) $tpl="1. Diller: {diller}\n2. Ism: {ism}\n3. Nomer: {nomer}\n4. Operator: {operator}\n5. Tarif: {tarif}";
@@ -40,6 +41,7 @@ if($_POST){
    } else {
     // Diller qo'shsa - endi to'g'ridan-to'g'ri tasdiqlangan holatda saqlanadi va sozlamaga qarab kanalga ham ketadi
     db()->prepare("INSERT INTO paid_participants (phone,pretty_phone,name,operator_name,tarif_name,is_paid,dealer_id,status,approved_by,approved_at,created_at,promo_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")->execute([$ph,$pretty,$name,$op,$tar,$is_paid,$did,'approved',$did,date('Y-m-d H:i:s'),$createdAt,$promo]);
+    logActivity('add', "Qo'shildi: $name $pretty ($op / $tar)".($is_paid?" • O'YINGA":" • BAZAGA"));
     if(shouldSendToChannel($is_paid)){
      $tpl=getSetting('template'); if(!$tpl) $tpl="1. Diller: {diller}\n2. Ism: {ism}\n3. Nomer: {nomer}\n4. Operator: {operator}\n5. Tarif: {tarif}";
      $txt=str_replace(['{diller}','{ism}','{nomer}','{operator}','{tarif}'],[$u['name'],$name,$pretty,$op,$tar],$tpl);

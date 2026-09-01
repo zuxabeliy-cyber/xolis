@@ -7,8 +7,8 @@ include 'layout_header.php';
 $ym=selectedMonth();
 list($mc,$mp)=monthCond($ym,'created_at');
 list($mc2,$mp2)=monthCond($ym,'p.created_at');
-try{ $st=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE is_paid=1 AND blacklisted=0 AND status='approved'".$mc); $st->execute($mp); $paid=$st->fetchColumn(); }catch(Exception $e){ $paid=0; }
-try{ $st=db()->prepare("SELECT p.phone, p.pretty_phone, p.name, p.operator_name, p.tarif_name, p.is_paid, p.promo_count, d.name as dealer_name FROM paid_participants p LEFT JOIN dealers d ON d.id=p.dealer_id WHERE p.blacklisted=0 AND p.status='approved'".$mc2); $st->execute($mp2); $allListRaw=$st->fetchAll(); }catch(Exception $e){ $allListRaw=[]; }
+try{ $st=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE is_paid=1 AND blacklisted=0 AND status='approved' AND trashed=0".$mc); $st->execute($mp); $paid=$st->fetchColumn(); }catch(Exception $e){ $paid=0; }
+try{ $st=db()->prepare("SELECT p.phone, p.pretty_phone, p.name, p.operator_name, p.tarif_name, p.is_paid, p.promo_count, d.name as dealer_name FROM paid_participants p LEFT JOIN dealers d ON d.id=p.dealer_id WHERE p.blacklisted=0 AND p.status='approved' AND p.trashed=0".$mc2); $st->execute($mp2); $allListRaw=$st->fetchAll(); }catch(Exception $e){ $allListRaw=[]; }
 $allList=[]; foreach($allListRaw as $r){ $times = max(1,intval($r['promo_count'])); for($i=0;$i<$times;$i++){ $allList[]=$r; } }
 ?>
 <?php echo monthSelectorHtml($ym); ?>
@@ -28,18 +28,38 @@ $allList=[]; foreach($allListRaw as $r){ $times = max(1,intval($r['promo_count']
    <span class="drum-phone">Aylantirishni bosing</span>
   </div>
  </div>
- <button id="spinBtn" onclick="spin()" class="block mx-auto mt-6 bg-gradient-to-r from-[#7c6cff] to-[#ffcf7a] hover:from-[#9a8dff] hover:to-[#ffdd9a] text-black px-10 py-4 rounded-2xl font-black tracking-widest transition btn-glow text-base w-full max-w-sm">🎲 AYLANTRISH — G'OLIBNI ANIQLASH</button>
+ <div class="flex items-center justify-center gap-2 mt-6 mb-1 flex-wrap">
+  <span class="text-xs text-white/40">G'oliblar soni:</span>
+  <select id="winnerCount" class="bg-[#16162a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+   <?php for($i=1;$i<=10;$i++): ?><option value="<?php echo $i; ?>"><?php echo $i; ?> ta</option><?php endfor; ?>
+  </select>
+  <button type="button" id="resetExcl" onclick="resetExcluded()" class="btn btn-ghost btn-xs" style="display:none">↩ Chiqarilganlarni tiklash (<span id="exclN">0</span>)</button>
+  <a href="spins.php" class="btn btn-ghost btn-xs">🕘 Aylanishlar tarixi</a>
+ </div>
+ <button id="spinBtn" onclick="spin()" class="block mx-auto mt-2 bg-gradient-to-r from-[#7c6cff] to-[#ffcf7a] hover:from-[#9a8dff] hover:to-[#ffdd9a] text-black px-10 py-4 rounded-2xl font-black tracking-widest transition btn-glow text-base w-full max-w-sm">🎲 AYLANTRISH — G'OLIBNI ANIQLASH</button>
  <div id="win" class="mt-6 max-w-sm mx-auto"></div>
 </div>
 
 <script>
 var allList = <?php echo json_encode($allList, JSON_UNESCAPED_UNICODE); ?>;
+var ymSel = <?php echo json_encode($ym); ?>;
 var pool = 'paid';
+var excluded = {}; // chiqarib tashlangan telefonlar
 function currentList(){
- if(pool=='all') return allList;
- if(pool=='free') return allList.filter(function(x){ return x.is_paid==0; });
- return allList.filter(function(x){ return x.is_paid==1; });
+ var l;
+ if(pool=='all') l=allList;
+ else if(pool=='free') l=allList.filter(function(x){ return x.is_paid==0; });
+ else l=allList.filter(function(x){ return x.is_paid==1; });
+ return l.filter(function(x){ return !excluded[x.phone]; });
 }
+function uniqCount(list){ var u={}; list.forEach(function(x){ u[x.phone]=1; }); return Object.keys(u).length; }
+function refreshExclUI(){
+ var n=Object.keys(excluded).length;
+ var b=document.getElementById('resetExcl'); var s=document.getElementById('exclN');
+ if(s) s.textContent=n; if(b) b.style.display = n>0 ? '' : 'none';
+}
+function resetExcluded(){ excluded={}; refreshExclUI(); setPool(pool); }
+function esc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
 function setPool(p){
  pool=p;
  document.querySelectorAll('.pool-opt').forEach(function(b){
@@ -49,13 +69,59 @@ function setPool(p){
  var list=currentList();
  var countEl=document.getElementById('poolCount');
  if(countEl) countEl.textContent=list.length+" ta ishtirokchi";
- document.querySelector('#drum .drum-name').textContent=list.length+" ta tayyor";
+ document.querySelector('#drum .drum-name').textContent=uniqCount(list)+" ta tayyor";
  document.querySelector('#drum .drum-phone').textContent='Aylantirishni bosing';
  document.getElementById('win').innerHTML='';
+}
+// Ro'yxatdan n ta noyob (telefon bo'yicha) g'olib tanlaydi
+function pickWinners(list,n){
+ var res=[], seen={}, guard=0, maxUniq=uniqCount(list);
+ n=Math.min(n,maxUniq);
+ while(res.length<n && guard<20000){
+  guard++;
+  var r=list[Math.floor(Math.random()*list.length)];
+  if(seen[r.phone]) continue;
+  seen[r.phone]=1; res.push(r);
+ }
+ return res;
+}
+function excludeWinner(phone){ excluded[phone]=1; refreshExclUI(); renderWinners(window._lastWinners.filter(function(w){return w.phone!==phone;})); }
+function renderWinners(winners){
+ window._lastWinners=winners;
+ var win=document.getElementById('win');
+ if(!winners.length){ win.innerHTML='<p class="text-center text-white/30 text-sm">Hamma chiqarib tashlandi — qayta aylantiring.</p>'; return; }
+ var medals=['🥇','🥈','🥉'];
+ var html='<div style="background:linear-gradient(135deg,rgba(22,22,42,.9),rgba(10,10,18,.9));border:1px solid rgba(245,166,35,.35);padding:16px 18px;border-radius:20px;box-shadow:0 8px 32px rgba(124,108,255,.18)">';
+ html+='<p style="font-size:11px;color:rgba(245,166,35,.9);margin-bottom:10px;letter-spacing:.18em;font-family:\'IBM Plex Mono\',monospace">🏆 G\'OLIB'+(winners.length>1?'LAR ('+winners.length+' ta)':'')+' ANIQLANDI</p>';
+ winners.forEach(function(f,i){
+  var medal = medals[i] || (i+1)+'.';
+  html+='<div style="border-top:'+(i>0?'1px solid rgba(255,255,255,.08)':'none')+';padding:10px 0">'
+   +'<p style="font-weight:900;font-size:1.05rem;font-family:\'Fraunces\',serif">'+medal+' '+esc(f.name)+'</p>'
+   +'<p style="font-size:12px;opacity:.6;font-family:\'IBM Plex Mono\',monospace">'+esc(f.pretty_phone)+' • '+esc(f.tarif_name)+'</p>'
+   +'<div style="display:flex;gap:8px;margin-top:8px">'
+   +'<a href="winner.php?phone='+encodeURIComponent(f.phone)+'" style="flex:1;background:linear-gradient(90deg,#7c6cff,#ffcf7a);color:#000;padding:10px;border-radius:12px;font-weight:900;text-align:center;text-decoration:none;font-size:13px">✅ Tasdiqlash</a>'
+   +'<button type="button" onclick="excludeWinner(\''+esc(f.phone)+'\')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#fca5a5;padding:10px 12px;border-radius:12px;font-weight:800;font-size:13px" title="Chiqarib tashlash (qayta aylantirishda chiqmaydi)">🚫</button>'
+   +'</div></div>';
+ });
+ if(winners.length>1){
+  html+='<button type="button" onclick="confirmAll()" style="width:100%;margin-top:8px;background:#7c6cff;color:#fff;padding:11px;border-radius:12px;font-weight:900;border:none;cursor:pointer">✅ Hammasini tasdiqlash</button>';
+ }
+ html+='</div>';
+ win.innerHTML=html;
+}
+function confirmAll(){
+ var ws=window._lastWinners||[]; if(!ws.length) return;
+ if(!confirm(ws.length+" ta g'olibni tasdiqlaysizmi?")) return;
+ Promise.all(ws.map(function(w){ return fetch('winner.php?phone='+encodeURIComponent(w.phone)).catch(function(){}); }))
+  .then(function(){ window.location='winners.php'; });
+}
+function logSpin(winners){
+ try{ fetch('api.php?action=log_spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ym:ymSel,pool:pool,winners:winners.map(function(w){return {name:w.name,phone:w.phone};})})}); }catch(e){}
 }
 function spin(){
  var list=currentList();
  if(!list || list.length==0){ alert("Bu guruhda hali hech kim yo'q!"); return; }
+ var n=parseInt(document.getElementById('winnerCount').value)||1;
  var box=document.getElementById('drum');
  var nameEl=box.querySelector('.drum-name');
  var phoneEl=box.querySelector('.drum-phone');
@@ -76,16 +142,13 @@ function spin(){
   }else{
    box.classList.remove('spinning');
    btn.disabled=false; btn.classList.remove('opacity-50','pointer-events-none');
-   var f=list[Math.floor(Math.random()*list.length)];
-   nameEl.textContent='🎉 '+f.name;
-   phoneEl.textContent=f.pretty_phone;
+   var winners=pickWinners(list,n);
+   var first=winners[0];
+   nameEl.textContent='🎉 '+first.name;
+   phoneEl.textContent=first.pretty_phone;
    if(countEl) countEl.textContent=list.length+" ta ishtirokchi";
-   win.innerHTML='<div style="background:linear-gradient(135deg,rgba(22,22,42,.9),rgba(10,10,18,.9));border:1px solid rgba(245,166,35,.35);padding:20px 24px;border-radius:20px;box-shadow:0 8px 32px rgba(124,108,255,.18)">'
-    +'<p style="font-size:11px;color:rgba(245,166,35,.9);margin-bottom:6px;letter-spacing:.18em;font-family:\'IBM Plex Mono\',monospace">🏆 G\'OLIB ANIQLANDI</p>'
-    +'<p style="font-weight:900;font-size:1.15rem;margin-bottom:4px;font-family:\'Fraunces\',serif">'+f.name+'</p>'
-    +'<p style="font-size:12px;opacity:.6;font-family:\'IBM Plex Mono\',monospace">'+f.pretty_phone+' • '+f.tarif_name+'</p>'
-    +'<a href="winner.php?phone='+f.phone+'" style="display:block;margin-top:14px;background:linear-gradient(90deg,#7c6cff,#ffcf7a);color:#000;padding:13px 24px;border-radius:14px;font-weight:900;text-align:center;text-decoration:none">✅ G\'OLIBNI TASDIQLASH</a>'
-    +'</div>';
+   renderWinners(winners);
+   logSpin(winners);
    var boxRect=box.getBoundingClientRect();
    confettiBurst(boxRect.left+boxRect.width/2, boxRect.top+boxRect.height/2);
   }

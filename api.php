@@ -41,6 +41,7 @@ if($a=='toggle_paid'){
    $txt=str_replace(['{diller}','{ism}','{nomer}','{operator}','{tarif}'],[$dname,$row['name'],$row['pretty_phone'],$row['operator_name'],$row['tarif_name']],$tpl);
    sendToChannel($txt);
   }
+  logActivity('toggle', ($row['name']??'').' '.($row['pretty_phone']??'').' → '.($val?"O'YINGA":'BAZAGA'));
   echo json_encode(['ok'=>true,'is_paid'=>$val]);
  }catch(Exception $e){ echo json_encode(['ok'=>false]); }
  exit;
@@ -93,6 +94,41 @@ if($a=='upload_logo'){
   echo json_encode(['ok'=>false,'msg'=>"Fayl saqlash xatosi. logos/ papkasiga yozish ruxsati bormi?"]);
  }
  exit;
+}
+
+// Baraban aylanishini tarixga yozish (faqat Bosh admin)
+if($a=='log_spin'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false]); exit; }
+ $b=json_decode(file_get_contents('php://input'),true);
+ $ym=(isset($b['ym']) && preg_match('/^\d{4}-\d{2}$/',$b['ym']))?$b['ym']:date('Y-m');
+ $pool=in_array(($b['pool']??''),['paid','free','all'],true)?$b['pool']:'paid';
+ $names=[]; foreach((array)($b['winners']??[]) as $w){ $names[]=trim(($w['name']??'').' ('.($w['phone']??'').')'); }
+ $txt=implode(', ',array_slice($names,0,50));
+ try{ db()->prepare("INSERT INTO spin_log (ym,pool,winners,created_by,created_by_name) VALUES (?,?,?,?,?)")->execute([$ym,$pool,$txt,$_SESSION['user']['id'],$_SESSION['user']['name']]); }catch(Exception $e){}
+ logActivity('spin', count($names)." g'olib (".$pool."): ".$txt);
+ echo json_encode(['ok'=>true]); exit;
+}
+
+// Ko'p tanlab chiqindiga tashlash (soft delete)
+if($a=='bulk_trash'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged()){ echo json_encode(['ok'=>false]); exit; }
+ $b=json_decode(file_get_contents('php://input'),true);
+ $ids=array_filter(array_map('intval',(array)($b['ids']??[])));
+ if(!$ids){ echo json_encode(['ok'=>false,'msg'=>"Tanlanmagan"]); exit; }
+ $isS=isSuper(); $uid=$_SESSION['user']['id']; $done=0;
+ foreach($ids as $id){
+  try{
+   $s=db()->prepare("SELECT dealer_id,status FROM paid_participants WHERE id=?"); $s->execute([$id]); $r=$s->fetch();
+   if(!$r) continue;
+   if($isS || ($r['dealer_id']==$uid && $r['status']=='pending')){
+    db()->prepare("UPDATE paid_participants SET trashed=1, trashed_at=NOW() WHERE id=?")->execute([$id]); $done++;
+   }
+  }catch(Exception $e){}
+ }
+ logActivity('bulk_trash',"$done ta nomer chiqindiga tashlandi");
+ echo json_encode(['ok'=>true,'done'=>$done]); exit;
 }
 
 echo json_encode([]);

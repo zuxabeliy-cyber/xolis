@@ -55,9 +55,17 @@ try{
 </div>
 <?php endif; ?>
 
-<div class="card overflow-auto"><table class="w-full text-sm"><tr class="bg-black/50 text-white/30 text-xs"><th class="p-3 text-left">Diller</th><th>Ism</th><th>Nomer</th><th>Operator</th><th>Holat</th><th>Sana / Soat</th><th></th></tr>
+<div id="bulkBar" class="card p-3 mb-3 hidden items-center justify-between gap-2 flex-wrap" style="display:none">
+<span class="text-sm"><b id="bulkN" class="text-[#7c6cff]">0</b> ta tanlandi</span>
+<div class="flex gap-2">
+<button type="button" onclick="clearSel()" class="btn btn-ghost btn-sm">Bekor</button>
+<button type="button" onclick="bulkTrash()" class="btn btn-danger btn-sm">🗑 Chiqindiga tashlash</button>
+</div>
+</div>
+<div class="card overflow-auto"><table class="w-full text-sm"><tr class="bg-black/50 text-white/30 text-xs"><th class="p-3"><input type="checkbox" id="chkAll" onclick="toggleAll(this)" class="w-4 h-4 accent-[#7c6cff]"></th><th class="p-3 text-left">Diller</th><th>Ism</th><th>Nomer</th><th>Operator</th><th>Holat</th><th>Sana / Soat</th><th></th></tr>
 <?php foreach($rows as $r): ?>
 <tr class="border-b border-white/5 <?php echo $r['blacklisted']?'bg-white/5':''; ?>">
+<td class="p-3"><input type="checkbox" class="rowchk w-4 h-4 accent-[#7c6cff]" value="<?php echo $r['id']; ?>" onclick="updBulk()"></td>
 <td class="p-3 text-white/60 text-xs font-bold"><?php echo htmlspecialchars($r['dealer_name']); ?></td>
 <td class="p-3"><b><?php echo htmlspecialchars($r['name']); ?></b> <?php echo $r['blacklisted']?'<span class="bg-white text-black text-[9px] px-1 rounded">TASDIQLANGAN</span>':''; ?></td>
 <td class="font-mono text-xs"><?php echo htmlspecialchars($r['pretty_phone']); ?></td>
@@ -111,4 +119,17 @@ function markState(id, val){
 }
 </script>
 <?php endif; ?>
+<script>
+function selIds(){ return Array.from(document.querySelectorAll('.rowchk:checked')).map(function(c){return c.value;}); }
+function updBulk(){ var ids=selIds(); document.getElementById('bulkN').textContent=ids.length; document.getElementById('bulkBar').style.display = ids.length>0 ? 'flex' : 'none'; }
+function toggleAll(cb){ document.querySelectorAll('.rowchk').forEach(function(c){ c.checked=cb.checked; }); updBulk(); }
+function clearSel(){ document.querySelectorAll('.rowchk').forEach(function(c){ c.checked=false; }); var a=document.getElementById('chkAll'); if(a) a.checked=false; updBulk(); }
+function bulkTrash(){
+ var ids=selIds(); if(!ids.length) return;
+ if(!confirm(ids.length+" ta nomer chiqindiga tashlansinmi? (keyin tiklash mumkin)")) return;
+ fetch('api.php?action=bulk_trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:ids})})
+  .then(function(r){return r.json();}).then(function(d){ if(d.ok){ location.reload(); } else { alert(d.msg||'Xatolik'); } })
+  .catch(function(){ alert('Tarmoq xatosi'); });
+}
+</script>
 <?php include 'layout_footer.php'; ?>

@@ -8,7 +8,7 @@ if($_POST){
   if($u && password_verify($p,$u['password'])){
    session_regenerate_id(true);
    unset($_SESSION['fail_count']);
-   $_SESSION['user']=$u; header("Location: reports.php"); exit;
+   $_SESSION['user']=$u; logActivity('login', $u['name'].' tizimga kirdi'); header("Location: reports.php"); exit;
   }
  }catch(Exception $e){}
  $_SESSION['fail_count']=($_SESSION['fail_count']??0)+1;

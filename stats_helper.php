@@ -13,7 +13,7 @@ function statsFilters(){
 }
 
 function buildStatsWhere($params){
- $w=""; $p=[];
+ $w=" AND p.trashed=0"; $p=[];
  $f = $params['f'] ?? 'all';
  $days = intval($params['days'] ?? 0);
  $from = $params['from'] ?? ''; $to = $params['to'] ?? '';
@@ -84,7 +84,7 @@ function prevPeriodRange($f, $days=0, $from='', $to=''){
 }
 
 function countInRange($dateFrom, $dateTo, $dealerId=0){
- $w=" AND DATE(p.created_at) BETWEEN ? AND ? AND p.status='approved'"; $p=[$dateFrom,$dateTo];
+ $w=" AND DATE(p.created_at) BETWEEN ? AND ? AND p.status='approved' AND p.trashed=0"; $p=[$dateFrom,$dateTo];
  if($dealerId){ $w.=" AND p.dealer_id=?"; $p[]=$dealerId; }
  try{ $st=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants p WHERE 1 $w"); $st->execute($p); return (int)$st->fetchColumn(); }catch(Exception $e){ return 0; }
 }

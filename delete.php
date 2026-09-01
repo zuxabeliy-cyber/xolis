@@ -7,8 +7,9 @@ try{
   // Diller faqat OZINING va hali "kutilmoqda" holatidagi nomerini o'chira/bekor qila oladi.
   // Tasdiqlangan yoki boshqa dillerga tegishli nomerni faqat Bosh admin o'chira oladi.
   if($isSuper || ($r['dealer_id']==$u['id'] && $r['status']=='pending')){
-   db()->prepare("DELETE FROM paid_participants WHERE id=?")->execute([$id]);
+   db()->prepare("UPDATE paid_participants SET trashed=1, trashed_at=NOW() WHERE id=?")->execute([$id]);
+   logActivity('trash', "Chiqindiga: ".($r['name']??'')." ".($r['pretty_phone']??''));
   }
  }
 }catch(Exception $e){}
-header("Location: participants.php");
+header("Location: ".( ($_GET['from']??'')==='trash' ? 'trash.php' : 'participants.php'));

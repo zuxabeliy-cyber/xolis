@@ -44,6 +44,13 @@ function ensureSchema(){
  try{ $col=db()->query("SHOW COLUMNS FROM dealers LIKE 'last_seen_chat_id'")->fetch(); if(!$col){ db()->exec("ALTER TABLE dealers ADD COLUMN last_seen_chat_id INT NOT NULL DEFAULT 0"); } }catch(Exception $e){}
  try{ db()->prepare("INSERT IGNORE INTO tarifs (operator_name,name) VALUES ('Mobiuz','L 55')")->execute(); db()->prepare("INSERT IGNORE INTO tarifs (operator_name,name) VALUES ('Mobiuz','M 45')")->execute(); }catch(Exception $e){}
  try{ db()->exec("CREATE TABLE IF NOT EXISTS chat_messages (id INT AUTO_INCREMENT PRIMARY KEY, sender_id INT NOT NULL, sender_name VARCHAR(100), message TEXT, image_path VARCHAR(255) NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"); }catch(Exception $e){}
+ // Chiqindi qutisi (soft delete): o'chirilgan nomerlar butunlay yo'qolmaydi, tiklash mumkin
+ try{ $col=db()->query("SHOW COLUMNS FROM paid_participants LIKE 'trashed'")->fetch(); if(!$col){ db()->exec("ALTER TABLE paid_participants ADD COLUMN trashed TINYINT(1) NOT NULL DEFAULT 0"); } }catch(Exception $e){}
+ try{ $col=db()->query("SHOW COLUMNS FROM paid_participants LIKE 'trashed_at'")->fetch(); if(!$col){ db()->exec("ALTER TABLE paid_participants ADD COLUMN trashed_at DATETIME NULL"); } }catch(Exception $e){}
+ // Faollik jurnali (audit log)
+ try{ db()->exec("CREATE TABLE IF NOT EXISTS activity_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NULL, user_name VARCHAR(100), action VARCHAR(50), detail VARCHAR(500), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"); }catch(Exception $e){}
+ // Baraban aylanishlar tarixi
+ try{ db()->exec("CREATE TABLE IF NOT EXISTS spin_log (id INT AUTO_INCREMENT PRIMARY KEY, ym VARCHAR(7), pool VARCHAR(10), winners TEXT, created_by INT NULL, created_by_name VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"); }catch(Exception $e){}
  try{
   if(getSetting('pwd_migrated')!='1'){
    $rows=db()->query("SELECT id,password FROM dealers")->fetchAll();
@@ -68,13 +75,18 @@ function buildDateCond($from,$to,$col='p.created_at'){
 }
 
 // Kutilmoqdagi (tasdiqlanmagan) nomerlar soni - menyudagi badge va bildirishnoma uchun
-function pendingCount(){ try{ return (int)db()->query("SELECT COUNT(*) FROM paid_participants WHERE status='pending'")->fetchColumn(); }catch(Exception $e){ return 0; } }
+function pendingCount(){ try{ return (int)db()->query("SELECT COUNT(*) FROM paid_participants WHERE status='pending' AND trashed=0")->fetchColumn(); }catch(Exception $e){ return 0; } }
+
+// Faollik jurnaliga yozuv qo'shadi (kim, qachon, nima qildi)
+function logActivity($action,$detail=''){ try{ $u=$_SESSION['user']??null; db()->prepare("INSERT INTO activity_log (user_id,user_name,action,detail) VALUES (?,?,?,?)")->execute([$u['id']??null,$u['name']??'—',$action,mb_substr((string)$detail,0,500)]); }catch(Exception $e){} }
+// Chiqindi qutisidagi (o'chirilgan) nomerlar soni
+function trashCount(){ try{ return (int)db()->query("SELECT COUNT(*) FROM paid_participants WHERE trashed=1")->fetchColumn(); }catch(Exception $e){ return 0; } }
 
 // Bitta dillerning jamlangan pul balansi (tasdiqlangan, bloklanmagan nomerlar bo'yicha, har bir nomer uchun tarif narxi 1 marta hisoblanadi - 1+1 aksiya pulga ta'sir qilmaydi)
 function dealerBalance($dealerId,$from=null,$to=null){
  try{
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
-  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 $cond";
+  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond";
   $s=db()->prepare($sql); $s->execute(array_merge([$dealerId],$params)); return (float)$s->fetchColumn();
  }catch(Exception $e){ return 0; }
 }
@@ -86,7 +98,7 @@ function allDealerBalances($from=null,$to=null,$sort='balance',$dir='DESC'){
   $orderMap=['balance'=>'balance','cnt'=>'cnt','name'=>'d.name','monthly_target'=>'d.monthly_target'];
   $orderCol=$orderMap[$sort] ?? 'balance';
   $dir = strtoupper($dir)==='ASC' ? 'ASC' : 'DESC';
-  $sql="SELECT d.id, d.name, d.role, d.monthly_target, COALESCE(SUM(t.price),0) as balance, COUNT(p.id) as cnt FROM dealers d LEFT JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND p.is_blocked=0 $cond LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE d.role='diller' GROUP BY d.id ORDER BY $orderCol $dir";
+  $sql="SELECT d.id, d.name, d.role, d.monthly_target, COALESCE(SUM(t.price),0) as balance, COUNT(p.id) as cnt FROM dealers d LEFT JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE d.role='diller' GROUP BY d.id ORDER BY $orderCol $dir";
   $s=db()->prepare($sql); $s->execute($params); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -95,7 +107,7 @@ function allDealerBalances($from=null,$to=null,$sort='balance',$dir='DESC'){
 function totalBalance($from=null,$to=null){
  try{
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
-  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 $cond";
+  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond";
   $s=db()->prepare($sql); $s->execute($params); return (float)$s->fetchColumn();
  }catch(Exception $e){ return 0; }
 }
@@ -105,7 +117,7 @@ function periodSum($fromDT,$toDT,$dealerId=null){
  try{
   $dcond=''; $params=[$fromDT,$toDT];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $params[]=$dealerId; }
-  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.created_at>=? AND p.created_at<=? $dcond";
+  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 AND p.created_at>=? AND p.created_at<=? $dcond";
   $s=db()->prepare($sql); $s->execute($params); return (float)$s->fetchColumn();
  }catch(Exception $e){ return 0; }
 }
@@ -116,7 +128,7 @@ function operatorBalances($dealerId=null,$from=null,$to=null){
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
   $dcond=''; $dparams=[];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $dparams[]=$dealerId; }
-  $sql="SELECT p.operator_name, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 $dcond $cond GROUP BY p.operator_name ORDER BY balance DESC";
+  $sql="SELECT p.operator_name, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $dcond $cond GROUP BY p.operator_name ORDER BY balance DESC";
   $s=db()->prepare($sql); $s->execute(array_merge($dparams,$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -127,7 +139,7 @@ function tarifBalancesForOperator($operatorName,$dealerId=null,$from=null,$to=nu
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
   $dcond=''; $dparams=[];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $dparams[]=$dealerId; }
-  $sql="SELECT p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.operator_name=? AND p.status='approved' AND p.is_blocked=0 $dcond $cond GROUP BY p.tarif_name, t.price ORDER BY balance DESC";
+  $sql="SELECT p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.operator_name=? AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $dcond $cond GROUP BY p.tarif_name, t.price ORDER BY balance DESC";
   $s=db()->prepare($sql); $s->execute(array_merge([$operatorName],$dparams,$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -138,7 +150,7 @@ function topTarifs($limit=5,$dealerId=null,$from=null,$to=null){
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
   $dcond=''; $dparams=[];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $dparams[]=$dealerId; }
-  $sql="SELECT p.operator_name, p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 $dcond $cond GROUP BY p.operator_name,p.tarif_name,t.price ORDER BY balance DESC LIMIT ".intval($limit);
+  $sql="SELECT p.operator_name, p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $dcond $cond GROUP BY p.operator_name,p.tarif_name,t.price ORDER BY balance DESC LIMIT ".intval($limit);
   $s=db()->prepare($sql); $s->execute(array_merge($dparams,$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -148,7 +160,7 @@ function monthlyRevenue($months=12,$dealerId=null){
  try{
   $dcond=''; $params=[$months];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $params[]=$dealerId; }
-  $sql="SELECT DATE_FORMAT(p.created_at,'%Y-%m') ym, COALESCE(SUM(t.price),0) balance FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH) $dcond GROUP BY ym ORDER BY ym ASC";
+  $sql="SELECT DATE_FORMAT(p.created_at,'%Y-%m') ym, COALESCE(SUM(t.price),0) balance FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH) $dcond GROUP BY ym ORDER BY ym ASC";
   $s=db()->prepare($sql); $s->execute($params);
   $rows=$s->fetchAll(); $map=[]; foreach($rows as $r){ $map[$r['ym']]=(float)$r['balance']; }
   $out=[]; for($i=$months-1;$i>=0;$i--){ $ym=date('Y-m', strtotime("-$i months")); $out[]=['ym'=>$ym,'balance'=>$map[$ym]??0]; }
@@ -160,7 +172,7 @@ function monthlyRevenue($months=12,$dealerId=null){
 function dealerParticipantsDetailed($dealerId,$from=null,$to=null){
  try{
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
-  $sql="SELECT p.name,p.pretty_phone,p.operator_name,p.tarif_name,t.price,p.created_at,p.promo_count FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 $cond ORDER BY p.created_at DESC";
+  $sql="SELECT p.name,p.pretty_phone,p.operator_name,p.tarif_name,t.price,p.created_at,p.promo_count FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond ORDER BY p.created_at DESC";
   $s=db()->prepare($sql); $s->execute(array_merge([$dealerId],$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }

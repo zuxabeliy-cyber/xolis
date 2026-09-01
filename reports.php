@@ -4,6 +4,14 @@ $params = statsFilters();
 if(!$isSuper) $params['dealer_id'] = $u['id'];
 $f=$params['f']; $days=$params['days']; $did=$params['dealer_id']; $from=$params['from']; $to=$params['to'];
 $ym = selectedMonth();
+$cmpMonth=null;
+if($ym!=='all' && preg_match('/^\d{4}-\d{2}$/',$ym)){
+ $curStart=$ym.'-01'; $curEnd=date('Y-m-t',strtotime($curStart));
+ $prevStart=date('Y-m-01',strtotime($curStart.' -1 month')); $prevEnd=date('Y-m-t',strtotime($prevStart));
+ $curC=countInRange($curStart,$curEnd,$did); $prevC=countInRange($prevStart,$prevEnd,$did);
+ $pctM=$prevC>0?round((($curC-$prevC)/$prevC)*100,1):($curC>0?100:0);
+ $cmpMonth=['cur'=>$curC,'prev'=>$prevC,'pct'=>$pctM,'curLabel'=>monthLabel($ym),'prevLabel'=>monthLabel(substr($prevStart,0,7))];
+}
 $initialOp = $_GET['op'] ?? '';
 $knownOps = ['Beeline','Ucell','Uztelecom','Mobiuz','Humans'];
 if($initialOp !== '__other__' && !in_array($initialOp, $knownOps, true)) $initialOp = '';
@@ -47,6 +55,18 @@ foreach($opFileMap as $opName=>$slug){
 <style>@media print{ nav,.sticky,#modalOverlay,#logoUploadModal,button,form{ display:none !important; } body{ background:#fff !important; color:#000 !important; } .card{ break-inside:avoid; border:1px solid #ccc !important; background:#fff !important; box-shadow:none !important; } }</style>
 
 <?php echo monthSelectorHtml($ym, array_filter(['dealer_id'=>$did?:null])); ?>
+<?php if($cmpMonth): ?>
+<div class="card p-4 mb-4 flex items-center gap-4 flex-wrap">
+ <span class="text-sm text-white/40 font-bold tracking-widest">📊 SOLISHTIRUV:</span>
+ <div class="flex items-center gap-3">
+  <div class="text-center"><p class="text-[10px] text-white/30"><?php echo htmlspecialchars($cmpMonth['prevLabel']); ?></p><p class="font-black text-lg text-white/60"><?php echo $cmpMonth['prev']; ?> ta</p></div>
+  <span class="text-white/20 text-xl">→</span>
+  <div class="text-center"><p class="text-[10px] text-[#7c6cff]"><?php echo htmlspecialchars($cmpMonth['curLabel']); ?></p><p class="font-black text-lg text-[#7c6cff]"><?php echo $cmpMonth['cur']; ?> ta</p></div>
+ </div>
+ <span class="text-sm font-black px-3 py-1 rounded-full border <?php echo $cmpMonth['pct']>=0?'text-[#7c6cff] bg-[#7c6cff]/10 border-[#7c6cff]/20':'text-red-300 bg-red-500/10 border-red-500/20'; ?>"><?php echo $cmpMonth['pct']>=0?'▲':'▼'; ?> <?php echo abs($cmpMonth['pct']); ?>%</span>
+ <span class="text-[11px] text-white/30">o'tgan oyga nisbatan</span>
+</div>
+<?php endif; ?>
 <div class="card p-4 my-4 flex flex-wrap gap-2 items-center">
 <div class="flex gap-2 flex-wrap">
 <a href="?f=all&dealer_id=<?php echo $did; ?>&ym=<?php echo urlencode($ym); ?>" class="px-4 py-2 rounded-xl text-xs font-bold <?php echo $f=='all'?'bg-white text-black':'bg-white/5 text-white/60'; ?>">Hammasi</a>
