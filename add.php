@@ -44,9 +44,9 @@ if($_POST){
      $tpl=getSetting('template'); if(!$tpl) $tpl="1. Diller: {diller}\n2. Ism: {ism}\n3. Nomer: {nomer}\n4. Operator: {operator}\n5. Tarif: {tarif}";
      $txt=str_replace(['{diller}','{ism}','{nomer}','{operator}','{tarif}'],[$u['name'],$name,$pretty,$op,$tar],$tpl);
      sendToChannel($txt);
-     $msg='<div class="bg-white/5 border border-[#1fae76]/20 text-[#1fae76] p-3 rounded-xl text-sm">✅ Qo\'shildi va kanalga ketdi'.($promo==2?' • 🎁 1+1 (2 ta hisoblandi)':'').'</div>';
+     $msg='<div class="bg-white/5 border border-[#7c6cff]/20 text-[#7c6cff] p-3 rounded-xl text-sm">✅ Qo\'shildi va kanalga ketdi'.($promo==2?' • 🎁 1+1 (2 ta hisoblandi)':'').'</div>';
     } else {
-     $msg='<div class="bg-white/5 border border-[#1fae76]/20 text-[#1fae76] p-3 rounded-xl text-sm">✅ Qo\'shildi'.($promo==2?' • 🎁 1+1 (2 ta hisoblandi)':'').'</div>';
+     $msg='<div class="bg-white/5 border border-[#7c6cff]/20 text-[#7c6cff] p-3 rounded-xl text-sm">✅ Qo\'shildi'.($promo==2?' • 🎁 1+1 (2 ta hisoblandi)':'').'</div>';
     }
    }
   }
@@ -71,9 +71,9 @@ if($_POST){
 <select id="op" name="operator" class="w-full p-4 rounded-xl bg-black/50 border border-white/10 text-white"><?php foreach($ops as $o): ?><option><?php echo $o['name']; ?></option><?php endforeach; ?></select>
 <select id="tar" name="tarif" class="w-full p-4 rounded-xl bg-black/50 border border-white/10 text-white"></select>
 <div class="grid grid-cols-2 gap-2" id="paidToggle"><label class="paid-opt bg-white text-black p-3 rounded-xl text-sm font-bold text-center cursor-pointer transition"><input type="radio" name="is_paid" value="0" checked class="hidden" onchange="updPaidUI()"> BAZAGA</label><label class="paid-opt bg-white/5 border border-white/10 p-3 rounded-xl text-sm text-center cursor-pointer transition"><input type="radio" name="is_paid" value="1" class="hidden" onchange="updPaidUI()"> O'YINGA</label></div>
-<label class="flex items-center gap-2 bg-[#1fae76]/5 border border-[#1fae76]/20 p-3 rounded-xl text-sm cursor-pointer"><input type="checkbox" name="promo_1_1" value="1" class="w-5 h-5 accent-[#1fae76]"><span>🎁 1+1 Aksiya — bu nomer <b>2 ta</b> bo'lib bazaga hisoblansin</span></label>
+<label class="flex items-center gap-2 bg-[#7c6cff]/5 border border-[#7c6cff]/20 p-3 rounded-xl text-sm cursor-pointer"><input type="checkbox" name="promo_1_1" value="1" class="w-5 h-5 accent-[#7c6cff]"><span>🎁 1+1 Aksiya — bu nomer <b>2 ta</b> bo'lib bazaga hisoblansin</span></label>
 <div><label class="text-xs text-white/40">Sana (ixtiyoriy — bo'sh qoldirsangiz bugungi kun bilan qo'shiladi, kechroq kirgan nomerni o'sha kuniga yozmoqchi bo'lsangiz shu yerdan tanlang)</label><input type="date" name="created_date" max="<?php echo date('Y-m-d'); ?>" class="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none"></div>
-<button class="w-full bg-white text-black p-4 rounded-xl font-black btn-glow">QO'SHISH</button></form></div>
+<button class="btn btn-primary btn-glow w-full py-4 text-base">✅ QO'SHISH</button></form></div>
 <?php endif; ?>
 <?php if($msg): ?><div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[999] max-w-sm w-[92%] shadow-2xl"><?php echo $msg; ?></div>
 <script>setTimeout(function(){ var t=document.getElementById('toast'); if(t){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); },400); } },4500);</script><?php endif; ?>

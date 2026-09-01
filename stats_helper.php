@@ -8,6 +8,7 @@ function statsFilters(){
   'from' => $_GET['from'] ?? '',
   'to' => $_GET['to'] ?? '',
   'dealer_id' => intval($_GET['dealer_id'] ?? 0),
+  'ym' => $_GET['ym'] ?? '',
  ];
 }
 
@@ -26,6 +27,10 @@ function buildStatsWhere($params){
  if(!empty($params['dealer_id'])){ $w.=" AND p.dealer_id=?"; $p[]=intval($params['dealer_id']); }
  if(!empty($params['operator'])){ $w.=" AND p.operator_name=?"; $p[]=$params['operator']; }
  if(!empty($params['tarif'])){ $w.=" AND p.tarif_name=?"; $p[]=$params['tarif']; }
+ // Oylik ajratish: har oy alohida. Default - joriy oy. Qo'lda sana oralig'i (range) tanlansa oy qulfi olib tashlanadi.
+ $ym = $params['ym'] ?? '';
+ if($ym==='') $ym = ($f==='range') ? 'all' : date('Y-m');
+ if($ym!=='all' && preg_match('/^\d{4}-\d{2}$/',$ym)){ $w.=" AND DATE_FORMAT(p.created_at,'%Y-%m')=?"; $p[]=$ym; }
  return [$w,$p];
 }
 

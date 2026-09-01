@@ -95,4 +95,15 @@ if($a=='upload_logo'){
  exit;
 }
 
+// AI yordamchi bilan suhbat (faqat Bosh admin)
+if($a=='ai_chat'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
+ $raw=file_get_contents('php://input'); $body=json_decode($raw,true);
+ $history = (is_array($body) && !empty($body['history']) && is_array($body['history'])) ? $body['history'] : [];
+ $clean=[]; foreach($history as $h){ if(!is_array($h)) continue; $role=($h['role']??'user')==='assistant'?'assistant':'user'; $clean[]=['role'=>$role,'content'=>(string)($h['content']??'')]; }
+ $clean=array_slice($clean,-20);
+ echo json_encode(aiChat($clean), JSON_UNESCAPED_UNICODE); exit;
+}
+
 echo json_encode([]);

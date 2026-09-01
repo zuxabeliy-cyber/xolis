@@ -75,10 +75,10 @@ function getLogoUrl($name){
 }
 ?>
 <h1 class="font-black text-xl mb-3 flex items-center gap-2"><?php echo icon('radio','w-5 h-5'); ?> Operator & Tarif - Logolarni boshqarish</h1>
-<?php if($msg): ?><div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[999] max-w-sm w-[92%] shadow-2xl"><div class="<?php echo strpos($msg,'Xato')===0?'bg-red-500/10 border border-red-500/20 text-red-300':'bg-white/5 border border-[#1fae76]/20 text-[#1fae76]'; ?> p-3 rounded-xl text-sm"><?php echo htmlspecialchars($msg); ?></div></div>
+<?php if($msg): ?><div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[999] max-w-sm w-[92%] shadow-2xl"><div class="<?php echo strpos($msg,'Xato')===0?'bg-red-500/10 border border-red-500/20 text-red-300':'bg-white/5 border border-[#7c6cff]/20 text-[#7c6cff]'; ?> p-3 rounded-xl text-sm"><?php echo htmlspecialchars($msg); ?></div></div>
 <script>setTimeout(function(){ var t=document.getElementById('toast'); if(t){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); },400); } },4000);</script><?php endif; ?>
 
-<div class="card p-5 mb-4 border-[#1fae76]/20">
+<div class="card p-5 mb-4 border-[#7c6cff]/20">
 <h3 class="font-bold mb-3">🌐 JAMI kartasi uchun rasm</h3>
 <div class="flex items-center gap-4">
 <div class="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
@@ -88,7 +88,7 @@ function getLogoUrl($name){
 <form method="post" enctype="multipart/form-data" class="flex gap-2">
 <input type="hidden" name="upload_jami_logo" value="1">
 <input type="file" name="jami_logo_file" accept=".png,.jpg,.jpeg,.webp,.svg" required class="flex-1 p-2 rounded-xl bg-black/50 border border-white/10 text-white text-xs">
-<button class="bg-[#1fae76] text-white px-4 py-2 rounded-xl text-xs font-black">Yuklash</button>
+<button class="bg-[#7c6cff] text-white px-4 py-2 rounded-xl text-xs font-black">Yuklash</button>
 </form>
 <p class="text-[10px] text-white/30 mt-1">Baraban dagi JAMI kartasida ko'rinadi. Tavsiya: 256x256 PNG, shaffof fon.</p>
 <?php if($jamiLogo): ?>
@@ -120,7 +120,7 @@ function getLogoUrl($name){
 <span class="font-bold text-sm flex items-center gap-2"><span class="w-10 h-10 rounded-full overflow-hidden inline-block bg-white/5 border border-white/10"><?php echo opLogoSmall($o['name']); ?></span><?php echo htmlspecialchars($o['name']); ?> <span class="text-white/30 text-xs">(<?php echo count($grouped[$o['name']] ?? []); ?> ta tarif)</span></span>
 <form method="post" onsubmit="return confirm('Ochirish?')"><input type="hidden" name="del_op" value="<?php echo $o['id']; ?>"><button class="bg-red-500/10 text-red-400 px-3 py-1 rounded-lg text-xs border border-red-500/20">O'chirish</button></form>
 </div>
-<div class="mt-3 flex gap-2 items-center bg-[#172219] p-2 rounded-xl border border-white/5">
+<div class="mt-3 flex gap-2 items-center bg-[#16162a] p-2 rounded-xl border border-white/5">
 <form method="post" enctype="multipart/form-data" class="flex gap-2 flex-1">
 <input type="hidden" name="upload_logo_op" value="<?php echo htmlspecialchars($o['name']); ?>">
 <input type="file" name="logo_file" accept=".png,.jpg,.jpeg,.webp,.svg" required class="flex-1 p-2 rounded-lg bg-black/50 border border-white/10 text-white text-[11px]">
@@ -130,29 +130,29 @@ function getLogoUrl($name){
 <form method="post"><input type="hidden" name="delete_logo_op" value="<?php echo htmlspecialchars($o['name']); ?>"><button class="text-red-400 text-[10px] px-2">🗑</button></form>
 <?php endif; ?>
 </div>
-<?php if($logoUrl): ?><p class="text-[9px] text-[#1fae76] mt-1">✅ Logo mavjud: <?php echo $logoUrl; ?></p><?php else: ?><p class="text-[9px] text-white/30 mt-1">Logo yo'q - standart harf ko'rinadi</p><?php endif; ?>
+<?php if($logoUrl): ?><p class="text-[9px] text-[#7c6cff] mt-1">✅ Logo mavjud: <?php echo $logoUrl; ?></p><?php else: ?><p class="text-[9px] text-white/30 mt-1">Logo yo'q - standart harf ko'rinadi</p><?php endif; ?>
 </div>
 <?php endforeach; ?>
 </div>
-<form method="post" class="flex gap-2 mt-4"><input name="new_op" required placeholder="Yangi operator nomi" class="flex-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-[#1fae76]"><button class="bg-white text-black px-6 rounded-xl font-bold">+ Qo'shish</button></form>
+<form method="post" class="flex gap-2 mt-4"><input name="new_op" required placeholder="Yangi operator nomi" class="flex-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-[#7c6cff]"><button class="bg-white text-black px-6 rounded-xl font-bold">+ Qo'shish</button></form>
 </div>
 
 <div class="card p-5"><h3 class="font-bold mb-3">Tarif qo'shish - yo'qolmaydi</h3>
 <form method="post" class="space-y-3 bg-black/20 p-4 rounded-xl border border-white/5">
-<select name="new_tarif_op" required class="w-full p-3 rounded-xl bg-[#172219] border border-white/10 text-white"><option value="">Operator tanla</option><?php foreach($ops as $o): ?><option value="<?php echo htmlspecialchars($o['name']); ?>"><?php echo htmlspecialchars($o['name']); ?></option><?php endforeach; ?></select>
-<input name="new_tarif_name" required placeholder="Yangi tarif nomi, masalan: Yangi 100GB" class="w-full p-3 rounded-xl bg-[#172219] border border-white/10 text-white outline-none focus:border-[#1fae76]">
-<input name="new_tarif_price" type="number" step="0.01" min="0" placeholder="Narxi (so'm), masalan: 15000" class="w-full p-3 rounded-xl bg-[#172219] border border-white/10 text-white outline-none focus:border-[#1fae76]">
-<button class="w-full bg-[#1fae76] text-white p-3 rounded-xl font-black">+ Tarif qo'shish</button>
+<select name="new_tarif_op" required class="w-full p-3 rounded-xl bg-[#16162a] border border-white/10 text-white"><option value="">Operator tanla</option><?php foreach($ops as $o): ?><option value="<?php echo htmlspecialchars($o['name']); ?>"><?php echo htmlspecialchars($o['name']); ?></option><?php endforeach; ?></select>
+<input name="new_tarif_name" required placeholder="Yangi tarif nomi, masalan: Yangi 100GB" class="w-full p-3 rounded-xl bg-[#16162a] border border-white/10 text-white outline-none focus:border-[#7c6cff]">
+<input name="new_tarif_price" type="number" step="0.01" min="0" placeholder="Narxi (so'm), masalan: 15000" class="w-full p-3 rounded-xl bg-[#16162a] border border-white/10 text-white outline-none focus:border-[#7c6cff]">
+<button class="w-full bg-[#7c6cff] text-white p-3 rounded-xl font-black">+ Tarif qo'shish</button>
 </form>
 <div class="mt-4 space-y-3 max-h-[600px] overflow-auto">
 <?php foreach($grouped as $opN=>$list): ?>
-<div class="bg-black/30 rounded-xl p-3 border border-white/5"><p class="font-bold text-[#1fae76] text-sm mb-2"><?php echo htmlspecialchars($opN); ?> - <?php echo count($list); ?> ta</p>
-<?php foreach($list as $t): ?><div class="flex justify-between items-center gap-2 bg-[#172219] p-2 rounded-lg mb-1 text-sm border border-white/5">
+<div class="bg-black/30 rounded-xl p-3 border border-white/5"><p class="font-bold text-[#7c6cff] text-sm mb-2"><?php echo htmlspecialchars($opN); ?> - <?php echo count($list); ?> ta</p>
+<?php foreach($list as $t): ?><div class="flex justify-between items-center gap-2 bg-[#16162a] p-2 rounded-lg mb-1 text-sm border border-white/5">
 <span class="flex-1"><?php echo htmlspecialchars($t['name']); ?></span>
 <form method="post" class="flex gap-1 items-center" onsubmit="return confirm('Narx yangilansinmi?')">
 <input type="hidden" name="update_price_id" value="<?php echo $t['id']; ?>">
 <input name="update_price_val" type="number" step="0.01" min="0" value="<?php echo rtrim(rtrim(number_format($t['price'],2,'.',''),'0'),'.'); ?>" placeholder="Narx" class="w-24 p-1.5 rounded-lg bg-black/40 border border-white/10 text-white text-xs">
-<button class="bg-[#1fae76]/10 border border-[#1fae76]/20 text-[#1fae76] px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap">Saqlash</button>
+<button class="bg-[#7c6cff]/10 border border-[#7c6cff]/20 text-[#7c6cff] px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap">Saqlash</button>
 </form>
 <form method="post" onsubmit="return confirm('Ochirish?')"><input type="hidden" name="del_tarif" value="<?php echo $t['id']; ?>"><button class="text-red-400 text-xs px-2">x</button></form>
 </div><?php endforeach; ?>

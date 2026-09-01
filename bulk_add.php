@@ -19,10 +19,10 @@ if($_POST && isset($_POST['rows'])){
 <div class="card p-4 mb-3">
 <p class="text-xs text-white/40 mb-2">🔁 Barchasiga bir xil qo'llash <span class="text-white/25">(ixtiyoriy — tanlamasangiz har bir qator o'zicha qoladi)</span></p>
 <div class="grid md:grid-cols-4 gap-2">
-<select id="bulkDealer" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-sm text-white"><option value="">— Diller (har xil) —</option><?php foreach($dils as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?></select>
-<select id="bulkOperator" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-sm text-white"><option value="">— Operator (har xil) —</option><?php foreach($ops as $o): ?><option value="<?php echo htmlspecialchars($o['name']); ?>"><?php echo htmlspecialchars($o['name']); ?></option><?php endforeach; ?></select>
-<select id="bulkTarif" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-sm text-white"><option value="">— Tarif (har xil) —</option></select>
-<select id="bulkPaid" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-sm text-white"><option value="">— Baza/O'yin (har xil) —</option><option value="0">BAZAGA</option><option value="1">O'YINGA</option></select>
+<select id="bulkDealer" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-sm text-white"><option value="">— Diller (har xil) —</option><?php foreach($dils as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?></select>
+<select id="bulkOperator" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-sm text-white"><option value="">— Operator (har xil) —</option><?php foreach($ops as $o): ?><option value="<?php echo htmlspecialchars($o['name']); ?>"><?php echo htmlspecialchars($o['name']); ?></option><?php endforeach; ?></select>
+<select id="bulkTarif" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-sm text-white"><option value="">— Tarif (har xil) —</option></select>
+<select id="bulkPaid" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-sm text-white"><option value="">— Baza/O'yin (har xil) —</option><option value="0">BAZAGA</option><option value="1">O'YINGA</option></select>
 </div>
 </div>
 
@@ -52,13 +52,13 @@ function phoneKeydown(e, phoneInput){
 }
 function addRow(){
  const c=document.getElementById('rows'); const d=document.createElement('div'); d.className='grid md:grid-cols-8 gap-2 bg-black/20 p-2 rounded-xl border border-white/5 items-center';
- d.innerHTML = `<input name="rows[${idx}][name]" placeholder="Ism" class="p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white">`+
-  `<input name="rows[${idx}][phone]" placeholder="+998" oninput="autoFmt(this)" onkeydown="phoneKeydown(event,this)" class="p-2 rounded-lg bg-[#172219] border border-white/10 text-sm font-mono text-white">`+
-  `<select name="rows[${idx}][operator]" onchange="upd(this)" class="op p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white">${ops.map(o=>`<option>${o}</option>`).join('')}</select>`+
-  `<select name="rows[${idx}][tarif]" class="tar p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white"></select>`+
-  `<select name="rows[${idx}][is_paid]" class="p-2 rounded-lg bg-[#172219] text-sm text-white"><option value="0">BAZAGA</option><option value="1">O'YINGA</option></select>`+
-  `<select name="rows[${idx}][dealer_id]" required class="p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white"><option value="">Diller</option>${dils.map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}</select>`+
-  `<label class="flex items-center gap-1 text-[10px] text-[#1fae76] cursor-pointer"><input type="checkbox" name="rows[${idx}][promo_1_1]" value="1" class="w-4 h-4 accent-[#1fae76]">1+1</label>`+
+ d.innerHTML = `<input name="rows[${idx}][name]" placeholder="Ism" class="p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white">`+
+  `<input name="rows[${idx}][phone]" placeholder="+998" oninput="autoFmt(this)" onkeydown="phoneKeydown(event,this)" class="p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm font-mono text-white">`+
+  `<select name="rows[${idx}][operator]" onchange="upd(this)" class="op p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white">${ops.map(o=>`<option>${o}</option>`).join('')}</select>`+
+  `<select name="rows[${idx}][tarif]" class="tar p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white"></select>`+
+  `<select name="rows[${idx}][is_paid]" class="p-2 rounded-lg bg-[#16162a] text-sm text-white"><option value="0">BAZAGA</option><option value="1">O'YINGA</option></select>`+
+  `<select name="rows[${idx}][dealer_id]" required class="p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white"><option value="">Diller</option>${dils.map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}</select>`+
+  `<label class="flex items-center gap-1 text-[10px] text-[#7c6cff] cursor-pointer"><input type="checkbox" name="rows[${idx}][promo_1_1]" value="1" class="w-4 h-4 accent-[#7c6cff]">1+1</label>`+
   `<button type="button" onclick="removeRow(this)" class="text-red-400 hover:text-red-300 text-lg font-black" title="Qatorni o'chirish">✕</button>`;
  c.appendChild(d);
  const bd=document.getElementById('bulkDealer').value; const dealerSel=d.querySelector('select[name*="[dealer_id]"]'); if(bd) dealerSel.value=bd;

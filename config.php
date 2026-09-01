@@ -223,6 +223,106 @@ function notifyAdminPending($text){
  $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>['chat_id'=>$chatId,'text'=>$text,'parse_mode'=>'HTML'],CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>8]); $r=curl_exec($ch); curl_close($ch); return $r;
 }
 
+// ==================== OYLIK AJRATISH (har oy alohida) ====================
+// Har bir oy alohida ko'riladi. Yangi oy 0 dan boshlanadi (ma'lumot o'chirilmaydi, faqat filtr).
+function uzMonthName($mo){ $m=['01'=>'Yanvar','02'=>'Fevral','03'=>'Mart','04'=>'Aprel','05'=>'May','06'=>'Iyun','07'=>'Iyul','08'=>'Avgust','09'=>'Sentabr','10'=>'Oktabr','11'=>'Noyabr','12'=>'Dekabr']; return $m[$mo]??$mo; }
+function monthLabel($ym){ if($ym==='all') return 'Barcha oylar'; if(!preg_match('/^(\d{4})-(\d{2})$/',$ym,$mm)) return $ym; return uzMonthName($mm[2]).' '.$mm[1]; }
+function currentMonth(){ return date('Y-m'); }
+// GET['ym'] dan tanlangan oyni oladi (default: joriy oy). 'all' = barcha oylar.
+function selectedMonth(){ $m=$_GET['ym']??''; if($m==='all') return 'all'; if(preg_match('/^\d{4}-\d{2}$/',$m)) return $m; return date('Y-m'); }
+// Tanlangan oy uchun SQL sharti ($col ustuni bo'yicha). 'all' bo'lsa - cheklovsiz.
+function monthCond($ym,$col='p.created_at'){ if($ym==='all'||$ym==='') return ['',[]]; return [" AND DATE_FORMAT($col,'%Y-%m')=?",[$ym]]; }
+// Bazada mavjud oylar ro'yxati (eng yangisi birinchi) + doim joriy oy
+function availableMonths(){
+ try{ $rows=db()->query("SELECT DISTINCT DATE_FORMAT(created_at,'%Y-%m') ym FROM paid_participants WHERE created_at IS NOT NULL ORDER BY ym DESC")->fetchAll(); $out=[]; foreach($rows as $r){ if(!empty($r['ym'])) $out[]=$r['ym']; } }catch(Exception $e){ $out=[]; }
+ $cur=date('Y-m'); if(!in_array($cur,$out,true)) array_unshift($out,$cur);
+ return $out;
+}
+// Sahifa tepasidagi oy tanlagich UI. $extra - saqlanishi kerak bo'lgan boshqa GET parametrlar (masalan qidiruv)
+function monthSelectorHtml($selected,$extra=[]){
+ $months=availableMonths();
+ $mk=function($ym) use($extra){ $p=$extra; $p['ym']=$ym; return '?'.http_build_query($p); };
+ $h='<div class="card p-3 mb-4 flex items-center gap-2 flex-wrap">';
+ $h.='<span class="text-[11px] text-white/40 tracking-widest font-bold mr-1">📅 OY:</span>';
+ foreach($months as $m){
+  $a=($selected===$m);
+  $h.='<a href="'.htmlspecialchars($mk($m)).'" class="px-3 py-1.5 rounded-lg text-xs font-bold '.($a?'bg-[#7c6cff] text-white shadow-lg':'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10').'">'.htmlspecialchars(monthLabel($m)).'</a>';
+ }
+ $a=($selected==='all');
+ $h.='<a href="'.htmlspecialchars($mk('all')).'" class="px-3 py-1.5 rounded-lg text-xs font-bold '.($a?'bg-[#f5a623] text-black':'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10').'">Hammasi</a>';
+ $h.='</div>';
+ return $h;
+}
+
+// ==================== AI YORDAMCHI ====================
+// Anthropic Claude API kaliti va modeli Sozlamalarda saqlanadi.
+function aiEnabled(){ return trim(getSetting('ai_api_key'))!==''; }
+function aiModel(){ $m=trim(getSetting('ai_model')); return $m?:'claude-opus-4-8'; }
+// AI ga beriladigan jonli statistika lavhasi (joriy oy asosida, savolga aniq javob bera olishi uchun)
+function aiContextSnapshot(){
+ $ym=date('Y-m'); $lines=[];
+ $lines[]="Bugungi sana: ".date('Y-m-d H:i');
+ $lines[]="Joriy oy: ".monthLabel($ym)." ($ym)";
+ try{
+  $t=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND DATE_FORMAT(created_at,'%Y-%m')=?"); $t->execute([$ym]);
+  $lines[]="Joriy oy jami ishtirokchilar (promo bilan): ".(int)$t->fetchColumn();
+  $g=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND is_paid=1 AND blacklisted=0 AND DATE_FORMAT(created_at,'%Y-%m')=?"); $g->execute([$ym]);
+  $lines[]="Joriy oy O'YINDA (barabanda) turganlar: ".(int)$g->fetchColumn();
+  $b=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND is_paid=0 AND DATE_FORMAT(created_at,'%Y-%m')=?"); $b->execute([$ym]);
+  $lines[]="Joriy oy BAZADA turganlar: ".(int)$b->fetchColumn();
+ }catch(Exception $e){}
+ try{ $lines[]="Kutilmoqda (tasdiqlanmagan) nomerlar: ".pendingCount(); }catch(Exception $e){}
+ try{
+  $ops=db()->prepare("SELECT operator_name, COUNT(*) c FROM paid_participants WHERE status='approved' AND DATE_FORMAT(created_at,'%Y-%m')=? GROUP BY operator_name ORDER BY c DESC"); $ops->execute([$ym]);
+  $o=[]; foreach($ops->fetchAll() as $r){ $o[]=$r['operator_name'].': '.$r['c']; }
+  if($o) $lines[]="Joriy oy operatorlar bo'yicha: ".implode(', ',$o);
+ }catch(Exception $e){}
+ try{
+  $dl=db()->prepare("SELECT d.name, COUNT(p.id) c FROM dealers d LEFT JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND DATE_FORMAT(p.created_at,'%Y-%m')=? WHERE d.role='diller' GROUP BY d.id ORDER BY c DESC LIMIT 10"); $dl->execute([$ym]);
+  $d=[]; foreach($dl->fetchAll() as $r){ $d[]=$r['name'].': '.$r['c']; }
+  if($d) $lines[]="Joriy oy dillerlar (TOP 10): ".implode(', ',$d);
+ }catch(Exception $e){}
+ try{ $lines[]="Joriy oy umumiy summa (so'm): ".number_format(totalBalance($ym.'-01', date('Y-m-t')),0,'.',' '); }catch(Exception $e){}
+ return implode("\n",$lines);
+}
+// Xabar ichida telefon raqami bo'lsa - o'sha nomer haqida ma'lumot topib beradi (AI ga qo'shimcha kontekst)
+function aiLookupPhone($text){
+ if(!preg_match('/\d[\d\s\+\-]{7,}\d/',$text,$m)) return '';
+ $ph=preg_replace('/\D/','',$m[0]); if(strlen($ph)==9) $ph='998'.$ph; if(strlen($ph)<9) return '';
+ try{
+  $s=db()->prepare("SELECT p.*, d.name dealer_name FROM paid_participants p LEFT JOIN dealers d ON d.id=p.dealer_id WHERE p.phone=? LIMIT 1"); $s->execute([$ph]); $r=$s->fetch();
+  if(!$r) return "Bazada '$ph' raqami topilmadi.";
+  return "Topilgan nomer: ism={$r['name']}, telefon={$r['pretty_phone']}, diller={$r['dealer_name']}, operator={$r['operator_name']}, tarif={$r['tarif_name']}, holat={$r['status']}, ".($r['is_paid']?"O'YINDA":"BAZADA").", qo'shilgan={$r['created_at']}";
+ }catch(Exception $e){ return ''; }
+}
+// Anthropic Claude API ga so'rov (curl orqali). $history: [['role'=>..,'content'=>..], ...]
+function aiChat($history){
+ $key=trim(getSetting('ai_api_key'));
+ if($key==='') return ['ok'=>false,'msg'=>"AI kaliti kiritilmagan. Sozlamalar sahifasida Anthropic API kalitini kiriting."];
+ $sys="Sen PAYNET XOLIS tizimining aqlli yordamchisisan. Bu tizim — dillerlar telefon raqamlarini (ishtirokchilarni) qo'shib boradigan, har oyda alohida hisoblanadigan aksiya/lotereya boshqaruv paneli.\n".
+  "Tizim bo'limlari: Statistika, Ro'yxat, So'm (balans), Baraban (g'olib tanlash), Qo'shish, ALL+ (ko'p qo'shish), G'oliblar, Telegram chat, Dillerlar, Tarif, Sozlama.\n".
+  "MUHIM: har bir oy alohida hisoblanadi — yangi oyda hisob 0 dan boshlanadi. Sahifalarda yuqorida 'OY' tanlagich bor.\n".
+  "Foydalanuvchiga o'zbek tilida, qisqa va aniq javob ber. Quyidagi jonli ma'lumotlardan foydalan:\n\n".aiContextSnapshot();
+ $extra=aiLookupPhone(is_array(end($history))?(end($history)['content']??''):'');
+ if($extra) $sys.="\n\nQidirilgan nomer: ".$extra;
+ $msgs=[];
+ foreach($history as $h){ $role=($h['role']==='assistant')?'assistant':'user'; $c=trim((string)($h['content']??'')); if($c==='') continue; $msgs[]=['role'=>$role,'content'=>$c]; }
+ if(!$msgs) return ['ok'=>false,'msg'=>"Bo'sh xabar."];
+ $payload=['model'=>aiModel(),'max_tokens'=>1500,'system'=>$sys,'messages'=>$msgs,'output_config'=>['effort'=>'low']];
+ $ch=curl_init('https://api.anthropic.com/v1/messages');
+ curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>json_encode($payload,JSON_UNESCAPED_UNICODE),CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>60,
+  CURLOPT_HTTPHEADER=>['content-type: application/json','x-api-key: '.$key,'anthropic-version: 2023-06-01']]);
+ $res=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch);
+ if($res===false) return ['ok'=>false,'msg'=>"Tarmoq xatosi: ".$err];
+ $d=json_decode($res,true);
+ if($code!==200){ $em=$d['error']['message']??('HTTP '.$code); return ['ok'=>false,'msg'=>"AI xatosi: ".$em]; }
+ $out='';
+ foreach(($d['content']??[]) as $blk){ if(($blk['type']??'')==='text') $out.=$blk['text']; }
+ $out=trim($out);
+ if($out==='') return ['ok'=>false,'msg'=>"AI bo'sh javob qaytardi."];
+ return ['ok'=>true,'reply'=>$out];
+}
+
 // Ko'p qo'shish / Tez terish sahifalari uchun umumiy: qatorlar ro'yxatini bazaga qo'shadi
 // (ikkala sahifa ham shu bitta funksiyani chaqiradi, mantiq bitta joyda saqlanadi)
 function bulkInsertParticipants($rowsData, $createdAt){
