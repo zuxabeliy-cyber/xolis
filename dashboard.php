@@ -19,7 +19,7 @@ function fmtS($n){ return number_format($n,0,'.',' '); }
 <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
  <div><h1 class="font-black text-2xl flex items-center gap-2">👋 Salom, <?php echo htmlspecialchars($u['name']); ?></h1>
  <p class="text-white/30 text-xs mt-1"><?php echo monthLabel($ym); ?> — tezkor ko'rinish</p></div>
- <?php if($isSuper): ?><button onclick="sendReport(this)" class="btn btn-primary btn-sm">📤 Oylik hisobotni Telegramga</button><?php endif; ?>
+ <?php if($isSuper): ?><button onclick="sendReport(this)" class="btn btn-primary btn-sm">📤 Bugungi hisobotni guruhga</button><?php endif; ?>
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -57,11 +57,11 @@ function fmtS($n){ return number_format($n,0,'.',' '); }
 var wk=<?php echo json_encode($days7, JSON_UNESCAPED_UNICODE); ?>;
 new Chart(document.getElementById('wk'),{type:'bar',data:{labels:wk.map(function(x){return x.d;}),datasets:[{data:wk.map(function(x){return x.c;}),backgroundColor:'rgba(124,108,255,.6)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#999',font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#999',font:{size:10}}}}}});
 function sendReport(btn){
- if(!confirm("Bu oy hisobotini Telegram kanalga yuborilsinmi?")) return;
+ if(!confirm("Bugungi hisobot (matn + Excel) guruhga yuborilsinmi?")) return;
  btn.disabled=true; var old=btn.textContent; btn.textContent='⏳ Yuborilmoqda...';
- fetch('api.php?action=send_month_report&ym=<?php echo $ym; ?>').then(function(r){return r.json();}).then(function(d){
+ fetch('api.php?action=send_group_report&date=<?php echo date('Y-m-d'); ?>').then(function(r){return r.json();}).then(function(d){
   btn.disabled=false; btn.textContent=old;
-  alert(d.ok ? '✅ Hisobot kanalga yuborildi!' : ('⚠️ '+(d.msg||'Xatolik')));
+  alert(d.ok ? '✅ Hisobot guruhga yuborildi!' : ('⚠️ '+(d.msg||'Xatolik — Sozlamada guruhni tekshiring')));
  }).catch(function(){ btn.disabled=false; btn.textContent=old; alert('⚠️ Tarmoq xatosi'); });
 }
 </script>

@@ -4,7 +4,7 @@ if(!$isSuper) exit;
 
 $msg = '';
 if($_SERVER['REQUEST_METHOD']=='POST'){
- foreach(['channel','bot_token','template','template_winner','admin_chat_id','daily_limit_count','admin_chat_link','session_timeout_min'] as $k){
+ foreach(['channel','bot_token','template','template_winner','admin_chat_id','daily_limit_count','admin_chat_link','session_timeout_min','report_group','report_bot_token'] as $k){
   if(isset($_POST[$k])){
    try{
     $st=db()->prepare("INSERT INTO settings (skey,svalue) VALUES (?,?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)");
@@ -33,6 +33,8 @@ $daily_limit_enabled = getSetting('daily_limit_enabled')=='1';
 $daily_limit_count = getSetting('daily_limit_count') ?: '20';
 $baza_sends_channel = getSetting('baza_sends_channel')=='1';
 $session_timeout_min = getSetting('session_timeout_min') ?: '0';
+$report_group = getSetting('report_group');
+$report_bot_token = getSetting('report_bot_token');
 $cron_token = getSetting('cron_token');
 if($cron_token===''){ $cron_token=bin2hex(random_bytes(8)); try{ db()->prepare("INSERT INTO settings (skey,svalue) VALUES ('cron_token',?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)")->execute([$cron_token]); }catch(Exception $e){} }
 $cronUrl = (isset($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'?'https':'http').'://'.($_SERVER['HTTP_HOST']??'').rtrim(dirname($_SERVER['PHP_SELF']),'/').'/api.php?action=cron_daily&token='.$cron_token;
@@ -96,6 +98,26 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 
 <div class="space-y-4">
+<div class="card p-5 border-[#7c6cff]/30">
+<h3 class="font-bold mb-1 text-sm">📣 Hisobot guruhi (Telegram)</h3>
+<p class="text-[11px] text-white/40 mb-3">Hisobotlar shu <b>guruhga</b> boradi (kanaldan alohida). Botni guruhga <b>admin</b> qiling, guruhga bitta xabar yozing, so'ng <b>"Guruh ID aniqlash"</b> tugmasini bosing — ID o'zi topiladi.</p>
+<form method="post" class="space-y-3">
+<div><label class="text-xs text-white/50">Guruh ID yoki @username</label><input name="report_group" id="rg" value="<?php echo htmlspecialchars($report_group); ?>" placeholder="-1001234567890 yoki @guruh" class="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-[#7c6cff]/50 font-mono text-sm"></div>
+<div><label class="text-xs text-white/50">Hisobot bot tokeni (ixtiyoriy — bo'sh qoldirsangiz asosiy bot ishlatiladi)</label><input name="report_bot_token" value="<?php echo htmlspecialchars($report_bot_token); ?>" placeholder="123456:ABC..." class="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-[#7c6cff]/50 font-mono text-xs"></div>
+<div class="flex gap-2 flex-wrap">
+<button class="btn btn-primary btn-sm">💾 Saqlash</button>
+<button type="button" onclick="detectGroup(this)" class="btn btn-ghost btn-sm">🔎 Guruh ID aniqlash</button>
+</div>
+</form>
+<div class="border-t border-white/5 pt-3 mt-3">
+<p class="text-xs text-white/50 mb-2">📤 Guruhga qo'lda hisobot yuborish (00:00 dan oldin ham)</p>
+<div class="flex gap-2 flex-wrap items-center">
+<input type="date" id="rdate" value="<?php echo date('Y-m-d'); ?>" max="<?php echo date('Y-m-d'); ?>" class="p-2 rounded-lg bg-black/50 border border-white/10 text-white text-sm outline-none">
+<button type="button" onclick="sendGroupReport(this)" class="btn btn-primary btn-sm">📤 Guruhga yuborish</button>
+</div>
+<p id="rgmsg" class="text-[11px] mt-2"></p>
+</div>
+</div>
 <div class="card p-5 border-[#7c6cff]/20">
 <h3 class="font-bold mb-3 text-sm">🛠 Ma'lumot va xavfsizlik</h3>
 <div class="space-y-3">
@@ -116,8 +138,8 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 </form>
 <div class="border-t border-white/5 pt-3">
-<p class="text-xs text-white/50 mb-1">🌙 Kunlik avtomatik yakun (cron)</p>
-<p class="text-[10px] text-white/30 mb-2">Hosting "Cron Jobs" bo'limida quyidagi manzilni har kuni kechqurun chaqiring — kanalga kunlik yakun avtomatik ketadi:</p>
+<p class="text-xs text-white/50 mb-1">🌙 Har kuni 00:00 — avtomatik guruh hisoboti (cron)</p>
+<p class="text-[10px] text-white/30 mb-2">Hosting <b>"Cron Jobs"</b> bo'limida quyidagi manzilni har kuni <b>00:00</b> da chaqiring (jadval: <span class="font-mono text-white/50">0 0 * * *</span>). O'tgan kun hisoboti (matn + Excel fayllar) avtomatik <b>guruhga</b> ketadi:</p>
 <input onclick="this.select()" readonly value="<?php echo htmlspecialchars($cronUrl); ?>" class="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-[#7c6cff] text-[11px] font-mono outline-none">
 </div>
 </div>
@@ -154,5 +176,7 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 <script>
 function sendMonthReport(btn){ if(!confirm("Bu oy hisoboti Telegram kanalga yuborilsinmi?")) return; btn.disabled=true; var o=btn.textContent; btn.textContent='⏳...'; fetch('api.php?action=send_month_report').then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; alert(d.ok?'✅ Yuborildi!':('⚠️ '+(d.msg||'Xatolik'))); }).catch(function(){ btn.disabled=false; btn.textContent=o; alert('⚠️ Tarmoq xatosi'); }); }
+function detectGroup(btn){ btn.disabled=true; var o=btn.textContent; btn.textContent='⏳ Aniqlanmoqda...'; fetch('api.php?action=detect_group').then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; if(d.ok){ document.getElementById('rg').value=d.id; alert('✅ Guruh topildi: '+d.id+'\nSaqlash tugmasini bosishga hojat yo\'q, avtomatik saqlandi.'); } else { alert('⚠️ '+(d.msg||'Topilmadi')); } }).catch(function(){ btn.disabled=false; btn.textContent=o; alert('⚠️ Tarmoq xatosi'); }); }
+function sendGroupReport(btn){ var dt=document.getElementById('rdate').value; if(!confirm(dt+" hisoboti guruhga yuborilsinmi?")) return; btn.disabled=true; var o=btn.textContent; btn.textContent='⏳...'; var m=document.getElementById('rgmsg'); m.textContent=''; fetch('api.php?action=send_group_report&date='+encodeURIComponent(dt)).then(function(r){return r.json();}).then(function(d){ btn.disabled=false; btn.textContent=o; m.style.color=d.ok?'#7c6cff':'#f87171'; m.textContent=d.ok?'✅ Guruhga yuborildi (matn + Excel)!':('⚠️ '+(d.msg||'Xatolik')); }).catch(function(){ btn.disabled=false; btn.textContent=o; m.style.color='#f87171'; m.textContent='⚠️ Tarmoq xatosi'; }); }
 </script>
 <?php include 'layout_footer.php'; ?>

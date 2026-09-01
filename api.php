@@ -169,16 +169,36 @@ if($a=='send_month_report'){
  echo json_encode(['ok'=>true]); exit;
 }
 
-// Kunlik yakunni Telegramga yuborish (cron uchun, token bilan himoyalangan - login shart emas)
+// Kunlik hisobotni GURUHGA yuborish (cron, 00:00 - token bilan himoyalangan, login shart emas)
+// 00:00 da tugagan kun (kecha) hisobotini yuboradi. ?date=YYYY-MM-DD bilan boshqa kunni ham bo'ladi.
 if($a=='cron_daily'){
  $tok=getSetting('cron_token');
  if($tok==='' || (($_GET['token']??'')!==$tok)){ http_response_code(403); echo 'forbidden'; exit; }
- $d=date('Y-m-d');
- try{ $cnt=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND DATE(created_at)='$d'")->fetchColumn(); }catch(Exception $e){ $cnt=0; }
- try{ $game=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND is_paid=1 AND DATE(created_at)='$d'")->fetchColumn(); }catch(Exception $e){ $game=0; }
- $t="🌙 <b>Kunlik yakun</b> — ".date('d.m.Y')."\n\n➕ Bugun qo'shildi: <b>$cnt</b> ta\n🎯 Shundan O'YINGA: <b>$game</b> ta";
- sendToChannel($t);
- echo 'ok'; exit;
+ $date=(isset($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/',$_GET['date'])) ? $_GET['date'] : date('Y-m-d',strtotime('-1 day'));
+ $res=sendDayReportToGroup($date);
+ logActivity('report',"Cron kunlik hisobot ($date) → guruh: ".($res['ok']?'OK':($res['msg']??'xato')));
+ echo $res['ok']?'ok':('error: '.($res['msg']??'')); exit;
+}
+
+// Guruh chat_id sini avtomatik aniqlash va saqlash (faqat Bosh admin)
+if($a=='detect_group'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
+ $id=detectGroupId();
+ if($id===null){ echo json_encode(['ok'=>false,'msg'=>"Guruh topilmadi. Botni guruhga admin qiling va guruhga bitta xabar yozing, keyin qayta bosing. (Bot tokeni to'g'ri kiritilganini tekshiring)"]); exit; }
+ try{ db()->prepare("INSERT INTO settings (skey,svalue) VALUES ('report_group',?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)")->execute([(string)$id]); }catch(Exception $e){}
+ logActivity('report',"Guruh ID aniqlandi: ".$id);
+ echo json_encode(['ok'=>true,'id'=>$id]); exit;
+}
+
+// Guruhga qo'lda kunlik hisobot yuborish (faqat Bosh admin)
+if($a=='send_group_report'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
+ $date=(isset($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/',$_GET['date'])) ? $_GET['date'] : date('Y-m-d');
+ $res=sendDayReportToGroup($date);
+ logActivity('report',"Qo'lda kunlik hisobot ($date) → guruh: ".($res['ok']?'OK':($res['msg']??'xato')));
+ echo json_encode($res); exit;
 }
 
 // Backup: butun bazani JSON qilib yuklab olish (faqat Bosh admin)

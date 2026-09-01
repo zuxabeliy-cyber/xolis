@@ -268,6 +268,62 @@ function monthSelectorHtml($selected,$extra=[]){
  return $h;
 }
 
+// ==================== TELEGRAM HISOBOT GURUHI ====================
+// Hisobotlar kanalga emas, alohida guruhga boradi. Sozlamada guruh ID + (ixtiyoriy) alohida bot token.
+function reportBotToken(){ $t=trim(getSetting('report_bot_token')); if($t!=='') return $t; $t=trim(getSetting('bot_token')); if($t!=='') return $t; return '8956274863:AAHhy99dkoeAK3RBzCQ4S78GtlWH3F8BLK8'; }
+function reportGroup(){ return trim(getSetting('report_group')); }
+function tgApi($method,$fields,$multipart=false){
+ $tok=reportBotToken(); $url="https://api.telegram.org/bot$tok/$method";
+ $ch=curl_init($url);
+ $opt=[CURLOPT_POST=>1,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>40];
+ $opt[CURLOPT_POSTFIELDS]=$multipart?$fields:http_build_query($fields);
+ curl_setopt_array($ch,$opt);
+ $r=curl_exec($ch); curl_close($ch);
+ return json_decode($r,true);
+}
+function sendToGroup($text){ $g=reportGroup(); if($g==='') return ['ok'=>false,'msg'=>"Guruh sozlanmagan"]; $r=tgApi('sendMessage',['chat_id'=>$g,'text'=>$text,'parse_mode'=>'HTML']); return ['ok'=>!empty($r['ok']),'msg'=>$r['description']??'']; }
+function sendDocToGroup($filepath,$caption=''){ $g=reportGroup(); if($g===''||!file_exists($filepath)) return false; $cf=function_exists('curl_file_create')?curl_file_create($filepath):('@'.$filepath); $r=tgApi('sendDocument',['chat_id'=>$g,'caption'=>$caption,'document'=>$cf],true); return !empty($r['ok']); }
+// getUpdates orqali oxirgi guruh chat_id sini avtomatik topadi (bot guruhga admin bo'lib, guruhga xabar yozilgach)
+function detectGroupId(){ $r=tgApi('getUpdates',['limit'=>50,'timeout'=>0]); if(empty($r['ok'])) return null; $found=null; foreach($r['result'] as $up){ $chat=$up['message']['chat']??($up['channel_post']['chat']??($up['my_chat_member']['chat']??null)); if($chat && in_array(($chat['type']??''),['group','supergroup'],true)){ $found=$chat['id']; } } return $found; }
+
+// Bir kunlik hisobot ma'lumotlari (sana bo'yicha)
+function reportDayData($date){
+ $data=['date'=>$date,'total'=>0,'game'=>0,'baza'=>0,'som'=>0,'ops'=>[],'dealers'=>[],'rows'=>[]];
+ try{
+  $data['total']=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND DATE(created_at)='$date'")->fetchColumn();
+  $data['game']=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND is_paid=1 AND DATE(created_at)='$date'")->fetchColumn();
+  $data['baza']=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND is_paid=0 AND DATE(created_at)='$date'")->fetchColumn();
+  $data['ops']=db()->query("SELECT p.operator_name, COUNT(*) cnt, COALESCE(SUM(t.price),0) som FROM paid_participants p LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.trashed=0 AND DATE(p.created_at)='$date' GROUP BY p.operator_name ORDER BY cnt DESC")->fetchAll();
+  $data['dealers']=db()->query("SELECT d.name, COUNT(p.id) cnt, COALESCE(SUM(t.price),0) som FROM dealers d JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND p.trashed=0 AND DATE(p.created_at)='$date' LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE d.role='diller' GROUP BY d.id ORDER BY cnt DESC")->fetchAll();
+  $data['rows']=db()->query("SELECT p.name,p.pretty_phone,p.operator_name,p.tarif_name,t.price,p.is_paid,d.name dealer_name,p.created_at FROM paid_participants p LEFT JOIN dealers d ON d.id=p.dealer_id LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.trashed=0 AND DATE(p.created_at)='$date' ORDER BY p.id DESC")->fetchAll();
+  $data['som']=(float)db()->query("SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.trashed=0 AND p.is_blocked=0 AND DATE(p.created_at)='$date'")->fetchColumn();
+ }catch(Exception $e){}
+ return $data;
+}
+function reportDayText($d){
+ $t="📊 <b>KUNLIK HISOBOT — ".date('d.m.Y',strtotime($d['date']))."</b>\n\n";
+ $t.="👥 Jami: <b>{$d['total']}</b> ta  •  🎯 O'YINDA: <b>{$d['game']}</b>  •  🗂 BAZADA: <b>{$d['baza']}</b>\n";
+ $t.="💰 Summa: <b>".number_format($d['som'],0,'.',' ')." so'm</b>\n";
+ if($d['ops']){ $t.="\n📡 <b>KOMPANIYALAR:</b>\n"; foreach($d['ops'] as $o){ $t.="• ".$o['operator_name'].": <b>".$o['cnt']."</b> ta — ".number_format($o['som'],0,'.',' ')." so'm\n"; } }
+ if($d['dealers']){ $md=['🥇','🥈','🥉']; $t.="\n👤 <b>DILLERLAR:</b>\n"; foreach($d['dealers'] as $i=>$dl){ $t.=($md[$i]??(($i+1).'.'))." ".$dl['name'].": <b>".$dl['cnt']."</b> ta — ".number_format($dl['som'],0,'.',' ')." so'm\n"; } }
+ if(!$d['total']) $t.="\nBu kuni yangi nomer qo'shilmadi.";
+ return $t;
+}
+function reportWriteCsv($path,$header,$rows){ $out=fopen($path,'w'); if(!$out) return false; fwrite($out,"\xEF\xBB\xBF"); fputcsv($out,$header); foreach($rows as $r) fputcsv($out,$r); fclose($out); return true; }
+// Bir kunlik to'liq hisobotni (matn + 3 ta Excel/CSV) guruhga yuboradi
+function sendDayReportToGroup($date){
+ if(reportGroup()===''){ return ['ok'=>false,'msg'=>"Guruh sozlanmagan (Sozlama → Hisobot guruhi)"]; }
+ if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$date)) $date=date('Y-m-d');
+ $d=reportDayData($date);
+ $res=sendToGroup(reportDayText($d));
+ if(empty($res['ok'])) return ['ok'=>false,'msg'=>($res['msg']?:'Yuborilmadi — guruh ID/token to\'g\'rimi?')];
+ $tmp=sys_get_temp_dir(); $dd=date('Y-m-d',strtotime($date)); $lbl=date('d.m.Y',strtotime($date));
+ if($d['rows']){ $p=$tmp."/xolis_royxat_$dd.csv"; $rows=[]; foreach($d['rows'] as $r){ $rows[]=[$r['dealer_name'],$r['name'],$r['pretty_phone'],$r['operator_name'],$r['tarif_name'],$r['price'],$r['is_paid']?"O'YINDA":'BAZADA',$r['created_at']]; } if(reportWriteCsv($p,['Diller','Ism','Nomer','Operator','Tarif','Narx','Turi','Sana'],$rows)){ sendDocToGroup($p,"📋 To'liq ro'yxat — $lbl"); @unlink($p); } }
+ if($d['dealers']){ $p=$tmp."/xolis_dillerlar_$dd.csv"; $rows=[]; foreach($d['dealers'] as $dl){ $rows[]=[$dl['name'],$dl['cnt'],$dl['som']]; } if(reportWriteCsv($p,['Diller','Soni','Summa (som)'],$rows)){ sendDocToGroup($p,"👤 Dillerlar bo'yicha — $lbl"); @unlink($p); } }
+ if($d['ops']){ $p=$tmp."/xolis_kompaniyalar_$dd.csv"; $rows=[]; foreach($d['ops'] as $o){ $rows[]=[$o['operator_name'],$o['cnt'],$o['som']]; } if(reportWriteCsv($p,['Kompaniya','Soni','Summa (som)'],$rows)){ sendDocToGroup($p,"📡 Kompaniyalar bo'yicha — $lbl"); @unlink($p); } }
+ return ['ok'=>true];
+}
+
 // Ko'p qo'shish / Tez terish sahifalari uchun umumiy: qatorlar ro'yxatini bazaga qo'shadi
 // (ikkala sahifa ham shu bitta funksiyani chaqiradi, mantiq bitta joyda saqlanadi)
 function bulkInsertParticipants($rowsData, $createdAt){
