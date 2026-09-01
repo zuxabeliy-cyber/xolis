@@ -214,7 +214,7 @@ body.bg-mesh::before{ content:''; position:fixed; inset:-25%; z-index:-1; pointe
 </head><body class="bg-mesh min-h-screen">
 <div class="sticky top-0 z-30 bg-[#0a0a12]/85 backdrop-blur-xl border-b border-white/5 p-3 flex justify-between items-center">
 <div class="flex items-center gap-3"><button onclick="document.getElementById('m').classList.remove('-translate-x-full');document.getElementById('o').classList.remove('hidden')" class="w-11 h-11 bg-white/5 rounded-xl border border-white/10 relative flex items-center justify-center text-white/70"><?php echo icon('menu','w-5 h-5'); ?></button><img src="logo.png" class="anim-logo w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(124,108,255,.35)]"><div><div class="flex items-center gap-1.5"><h1 class="font-bold text-[14px] tracking-wide"><?php echo htmlspecialchars($u['name']); ?></h1><span class="inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-[2px] rounded-full <?php echo $isSuper ? 'bg-[#f5a623]/10 text-[#f5a623] border border-[#f5a623]/20' : 'bg-[#7c6cff]/10 text-[#7c6cff] border border-[#7c6cff]/20'; ?>"><?php echo icon($isSuper?'crown':'shield','w-2.5 h-2.5'); ?><?php echo $isSuper ? 'Admin' : 'Diller'; ?></span><a href="chat.php" title="Telegram" class="relative w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/60 shrink-0"><?php echo icon('message','w-3.5 h-3.5'); ?><span id="chatDot" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a0a12] badge-live"></span></a></div><p class="text-[9px] text-white/25 tracking-[0.15em] mt-0.5"><span class="grad-text">PAYNET XOLIS</span></p></div></div>
-<div class="flex items-center gap-2"><button id="themeBtn" type="button" onclick="toggleTheme()" title="Kunduzgi/tungi rejim" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-base">🌙</button><div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#7c6cff] to-[#241b52] ring-1 ring-[#f5a623]/40 flex items-center justify-center font-black text-white text-sm"><?php echo mb_strtoupper(mb_substr($u['name'],0,1)); ?></div></div>
+<div class="flex items-center gap-2"><button id="installBtn" type="button" onclick="doInstall()" title="Ilovani o'rnatish" style="display:none" class="w-9 h-9 rounded-xl bg-[#7c6cff]/15 border border-[#7c6cff]/30 text-[#7c6cff] flex items-center justify-center text-base">📲</button><button id="themeBtn" type="button" onclick="toggleTheme()" title="Kunduzgi/tungi rejim" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-base">🌙</button><div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#7c6cff] to-[#241b52] ring-1 ring-[#f5a623]/40 flex items-center justify-center font-black text-white text-sm"><?php echo mb_strtoupper(mb_substr($u['name'],0,1)); ?></div></div>
 </div>
 <div id="o" onclick="this.classList.add('hidden');document.getElementById('m').classList.add('-translate-x-full')" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
 <div id="m" class="fixed top-0 left-0 h-full w-[300px] bg-[#0a0a12] border-r border-white/5 z-50 transform -translate-x-full transition-transform duration-300 overflow-auto">
@@ -255,6 +255,16 @@ function updThemeIcon(){ var b=document.getElementById('themeBtn'); if(b) b.text
 function toggleTheme(){ var h=document.documentElement; h.classList.toggle('light'); try{ localStorage.setItem('theme', h.classList.contains('light')?'light':'dark'); }catch(e){} updThemeIcon(); }
 updThemeIcon();
 if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+
+// === Ilovani o'rnatish (PWA install) ===
+var deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferredPrompt=e; var b=document.getElementById('installBtn'); if(b) b.style.display='flex'; });
+function doInstall(){
+ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.finally(function(){ deferredPrompt=null; var b=document.getElementById('installBtn'); if(b) b.style.display='none'; }); return; }
+ var iOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+ alert(iOS ? "iPhone: pastdagi 'Ulashish' (⬆️) tugmasini bosing → 'Ekranga qo'shish' (Add to Home Screen)." : "Menyu (⋮) ni oching → 'Ilovani o'rnatish' / 'Add to Home screen' ni tanlang.");
+}
+window.addEventListener('appinstalled',function(){ var b=document.getElementById('installBtn'); if(b) b.style.display='none'; });
 
 // === 4D karta tilt (sichqoncha bilan) ===
 (function(){

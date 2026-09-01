@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ilova nomi -->
+    <string name="app_name">PAYNET XOLIS</string>
+    <!-- MUHIM: ilova ochadigan sayt manzili. O'z domeningizni shu yerga yozing. -->
+    <string name="app_url">https://453da.myxvest1.ru</string>
+</resources>
