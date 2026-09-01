@@ -4,7 +4,7 @@ if(!$isSuper) exit;
 
 $msg = '';
 if($_SERVER['REQUEST_METHOD']=='POST'){
- foreach(['channel','bot_token','template','template_winner','admin_chat_id','daily_limit_count','admin_chat_link','ai_api_key','ai_model'] as $k){
+ foreach(['channel','bot_token','template','template_winner','admin_chat_id','daily_limit_count','admin_chat_link'] as $k){
   if(isset($_POST[$k])){
    try{
     $st=db()->prepare("INSERT INTO settings (skey,svalue) VALUES (?,?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)");
@@ -32,8 +32,6 @@ $admin_chat_link = getSetting('admin_chat_link');
 $daily_limit_enabled = getSetting('daily_limit_enabled')=='1';
 $daily_limit_count = getSetting('daily_limit_count') ?: '20';
 $baza_sends_channel = getSetting('baza_sends_channel')=='1';
-$ai_api_key = getSetting('ai_api_key');
-$ai_model = getSetting('ai_model') ?: 'claude-opus-4-8';
 
 if(!$template) $template = "1. Diller: {diller}
 2. Ism: {ism}
@@ -94,21 +92,6 @@ if(!$template_winner) $template_winner = "✅ TASDIQLANDI!
 </div>
 
 <div class="space-y-4">
-<div class="card p-5 border-[#7c6cff]/25">
-<h3 class="font-bold mb-1 text-sm flex items-center gap-2">🤖 AI yordamchi sozlamalari</h3>
-<p class="text-[11px] text-white/30 mb-3">Anthropic (Claude) API kalitini kiriting — shundan keyin menyudagi "AI yordamchi" ishlaydi. Kalit <b>console.anthropic.com</b> saytidan olinadi. Kalitsiz AI ishlamaydi.</p>
-<form method="post" class="space-y-3">
-<div><label class="text-xs text-white/50">Anthropic API kalit</label><input name="ai_api_key" type="text" value="<?php echo htmlspecialchars($ai_api_key); ?>" placeholder="sk-ant-..." class="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-[#7c6cff]/50 font-mono text-xs"></div>
-<div><label class="text-xs text-white/50">Model</label>
-<select name="ai_model" class="w-full mt-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none focus:border-[#7c6cff]/50">
-<?php foreach(['claude-opus-4-8'=>'Claude Opus 4.8 (kuchli)','claude-sonnet-5'=>'Claude Sonnet 5 (tez, arzon)','claude-haiku-4-5'=>'Claude Haiku 4.5 (eng tez)'] as $mv=>$ml): ?>
-<option value="<?php echo $mv; ?>" <?php echo $ai_model===$mv?'selected':''; ?>><?php echo $ml; ?></option>
-<?php endforeach; ?>
-</select></div>
-<button class="w-full bg-[#7c6cff] text-white p-3 rounded-xl font-black tracking-widest btn-glow">💾 AI SOZLAMASINI SAQLASH</button>
-<p class="text-[11px] <?php echo $ai_api_key?'text-[#7c6cff]':'text-white/30'; ?>"><?php echo $ai_api_key ? '✅ Kalit kiritilgan — AI yordamchi tayyor.' : '⚠️ Kalit hali kiritilmagan.'; ?></p>
-</form>
-</div>
 <div class="card p-5">
 <h3 class="font-bold mb-3 text-sm">💡 Qanday ishlatish</h3>
 <div class="bg-black/30 p-3 rounded-xl text-xs space-y-1 font-mono">

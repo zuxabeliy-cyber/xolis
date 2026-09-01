@@ -25,7 +25,6 @@ function icon($name,$class='w-4 h-4'){
   'trash'=>'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   'undo'=>'<path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-1"/>',
   'baraban'=>'<circle cx="12" cy="12" r="8"/><path d="M12 4v2M12 18v2"/><circle cx="12" cy="12" r="2.5"/>',
-  'ai'=>'<rect x="5" y="8" width="14" height="10" rx="2.5"/><path d="M12 3v3M9 3.5h6"/><circle cx="9.5" cy="13" r="1.1"/><circle cx="14.5" cy="13" r="1.1"/><path d="M3 12v3M21 12v3"/>',
  ];
  $body = $p[$name] ?? $p['dial'];
  return '<svg class="'.$class.' shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'.$body.'</svg>';
@@ -185,8 +184,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <a href="chat.php" class="flex gap-3 p-3 rounded-xl border justify-between items-center <?php echo navClass('chat.php'); ?>"><span class="flex gap-3 items-center"><?php echo icon('message'); ?> Telegram</span></a>
 <?php if($isSuper): ?><a href="dealers.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('dealers.php'); ?>"><?php echo icon('users'); ?> Dillerlar</a>
 <a href="operators.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('operators.php'); ?>"><?php echo icon('radio'); ?> Tarif</a>
-<a href="settings.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('settings.php'); ?>"><?php echo icon('gear'); ?> Sozlama</a>
-<a href="ai.php" class="flex gap-3 p-3 rounded-xl border items-center justify-between <?php echo navClass('ai.php'); ?>"><span class="flex gap-3 items-center"><?php echo icon('ai'); ?> AI yordamchi</span><span class="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-[#7c6cff]/15 text-[#7c6cff] border border-[#7c6cff]/25">YANGI</span></a><?php endif; ?>
+<a href="settings.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('settings.php'); ?>"><?php echo icon('gear'); ?> Sozlama</a><?php endif; ?>
 <a href="profile.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('profile.php'); ?>"><?php echo icon('user'); ?> Profil</a>
 </nav></div>
 <script>
