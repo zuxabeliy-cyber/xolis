@@ -41,6 +41,7 @@ if($a=='toggle_paid'){
    $txt=str_replace(['{diller}','{ism}','{nomer}','{operator}','{tarif}'],[$dname,$row['name'],$row['pretty_phone'],$row['operator_name'],$row['tarif_name']],$tpl);
    sendToChannel($txt);
   }
+  logActivity('toggle', ($row['name']??'').' '.($row['pretty_phone']??'').' → '.($val?"O'YINGA":'BAZAGA'));
   echo json_encode(['ok'=>true,'is_paid'=>$val]);
  }catch(Exception $e){ echo json_encode(['ok'=>false]); }
  exit;
@@ -93,6 +94,127 @@ if($a=='upload_logo'){
   echo json_encode(['ok'=>false,'msg'=>"Fayl saqlash xatosi. logos/ papkasiga yozish ruxsati bormi?"]);
  }
  exit;
+}
+
+// Baraban aylanishini tarixga yozish (faqat Bosh admin)
+if($a=='log_spin'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false]); exit; }
+ $b=json_decode(file_get_contents('php://input'),true);
+ $ym=(isset($b['ym']) && preg_match('/^\d{4}-\d{2}$/',$b['ym']))?$b['ym']:date('Y-m');
+ $pool=in_array(($b['pool']??''),['paid','free','all'],true)?$b['pool']:'paid';
+ $names=[]; foreach((array)($b['winners']??[]) as $w){ $names[]=trim(($w['name']??'').' ('.($w['phone']??'').')'); }
+ $txt=implode(', ',array_slice($names,0,50));
+ try{ db()->prepare("INSERT INTO spin_log (ym,pool,winners,created_by,created_by_name) VALUES (?,?,?,?,?)")->execute([$ym,$pool,$txt,$_SESSION['user']['id'],$_SESSION['user']['name']]); }catch(Exception $e){}
+ logActivity('spin', count($names)." g'olib (".$pool."): ".$txt);
+ echo json_encode(['ok'=>true]); exit;
+}
+
+// Ko'p tanlab chiqindiga tashlash (soft delete)
+if($a=='bulk_trash'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged()){ echo json_encode(['ok'=>false]); exit; }
+ $b=json_decode(file_get_contents('php://input'),true);
+ $ids=array_filter(array_map('intval',(array)($b['ids']??[])));
+ if(!$ids){ echo json_encode(['ok'=>false,'msg'=>"Tanlanmagan"]); exit; }
+ $isS=isSuper(); $uid=$_SESSION['user']['id']; $done=0;
+ foreach($ids as $id){
+  try{
+   $s=db()->prepare("SELECT dealer_id,status FROM paid_participants WHERE id=?"); $s->execute([$id]); $r=$s->fetch();
+   if(!$r) continue;
+   if($isS || ($r['dealer_id']==$uid && $r['status']=='pending')){
+    db()->prepare("UPDATE paid_participants SET trashed=1, trashed_at=NOW() WHERE id=?")->execute([$id]); $done++;
+   }
+  }catch(Exception $e){}
+ }
+ logActivity('bulk_trash',"$done ta nomer chiqindiga tashlandi");
+ echo json_encode(['ok'=>true,'done'=>$done]); exit;
+}
+
+// Ko'p tanlab O'YINGA/BAZAGA ko'chirish (faqat Bosh admin)
+if($a=='bulk_toggle'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false]); exit; }
+ $b=json_decode(file_get_contents('php://input'),true);
+ $ids=array_filter(array_map('intval',(array)($b['ids']??[])));
+ $val=intval($b['val']??0)?1:0;
+ if(!$ids){ echo json_encode(['ok'=>false,'msg'=>"Tanlanmagan"]); exit; }
+ $done=0;
+ foreach($ids as $id){ try{ db()->prepare("UPDATE paid_participants SET is_paid=? WHERE id=? AND trashed=0")->execute([$val,$id]); $done++; }catch(Exception $e){} }
+ logActivity('bulk_toggle',"$done ta → ".($val?"O'YINGA":'BAZAGA'));
+ echo json_encode(['ok'=>true,'done'=>$done]); exit;
+}
+
+// Oylik hisobotni Telegram kanalga yuborish (faqat Bosh admin)
+if($a=='send_month_report'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
+ $ym=(isset($_GET['ym']) && preg_match('/^\d{4}-\d{2}$/',$_GET['ym']))?$_GET['ym']:date('Y-m');
+ $start=$ym.'-01'; $end=date('Y-m-t',strtotime($start));
+ try{
+  $tot=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND DATE_FORMAT(created_at,'%Y-%m')='$ym'")->fetchColumn();
+  $game=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND is_paid=1 AND blacklisted=0 AND DATE_FORMAT(created_at,'%Y-%m')='$ym'")->fetchColumn();
+  $baza=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants WHERE status='approved' AND trashed=0 AND is_paid=0 AND DATE_FORMAT(created_at,'%Y-%m')='$ym'")->fetchColumn();
+  $ops=db()->query("SELECT operator_name, COUNT(*) c FROM paid_participants WHERE status='approved' AND trashed=0 AND DATE_FORMAT(created_at,'%Y-%m')='$ym' GROUP BY operator_name ORDER BY c DESC")->fetchAll();
+  $dls=db()->query("SELECT d.name, COUNT(p.id) c FROM dealers d LEFT JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND p.trashed=0 AND DATE_FORMAT(p.created_at,'%Y-%m')='$ym' WHERE d.role='diller' GROUP BY d.id HAVING c>0 ORDER BY c DESC LIMIT 5")->fetchAll();
+ }catch(Exception $e){ echo json_encode(['ok'=>false,'msg'=>"Baza xatosi"]); exit; }
+ $som=totalBalance($start,$end);
+ $t="📊 <b>".monthLabel($ym)." — HISOBOT</b>\n\n";
+ $t.="👥 Jami ishtirokchi: <b>$tot</b>\n🎯 O'YINDA: <b>$game</b>\n🗂 BAZADA: <b>$baza</b>\n💰 Summa: <b>".number_format($som,0,'.',' ')." so'm</b>\n";
+ if($ops){ $t.="\n📡 <b>Operatorlar:</b>\n"; foreach($ops as $o){ $t.="• ".$o['operator_name'].": ".$o['c']."\n"; } }
+ if($dls){ $medals=['🥇','🥈','🥉','4.','5.']; $t.="\n🏆 <b>Top dillerlar:</b>\n"; foreach($dls as $i=>$d){ $t.=($medals[$i]??($i+1).'.')." ".$d['name'].": ".$d['c']."\n"; } }
+ $r=sendToChannel($t);
+ if($r===false){ echo json_encode(['ok'=>false,'msg'=>"Kanal sozlanmagan (Sozlama)"]); exit; }
+ logActivity('report',"Oylik hisobot Telegramga: ".$ym);
+ echo json_encode(['ok'=>true]); exit;
+}
+
+// Kunlik hisobotni GURUHGA yuborish (cron, 00:00 - token bilan himoyalangan, login shart emas)
+// 00:00 da tugagan kun (kecha) hisobotini yuboradi. ?date=YYYY-MM-DD bilan boshqa kunni ham bo'ladi.
+if($a=='cron_daily'){
+ $tok=getSetting('cron_token');
+ if($tok==='' || (($_GET['token']??'')!==$tok)){ http_response_code(403); echo 'forbidden'; exit; }
+ $date=(isset($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/',$_GET['date'])) ? $_GET['date'] : date('Y-m-d',strtotime('-1 day'));
+ $res=sendDayReportToGroup($date);
+ logActivity('report',"Cron kunlik hisobot ($date) → guruh: ".($res['ok']?'OK':($res['msg']??'xato')));
+ echo $res['ok']?'ok':('error: '.($res['msg']??'')); exit;
+}
+
+// Guruh chat_id sini avtomatik aniqlash va saqlash (faqat Bosh admin)
+if($a=='detect_group'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
+ $id=detectGroupId();
+ if($id===null){ echo json_encode(['ok'=>false,'msg'=>"Guruh topilmadi. Botni guruhga admin qiling va guruhga bitta xabar yozing, keyin qayta bosing. (Bot tokeni to'g'ri kiritilganini tekshiring)"]); exit; }
+ try{ db()->prepare("INSERT INTO settings (skey,svalue) VALUES ('report_group',?) ON DUPLICATE KEY UPDATE svalue=VALUES(svalue)")->execute([(string)$id]); }catch(Exception $e){}
+ logActivity('report',"Guruh ID aniqlandi: ".$id);
+ echo json_encode(['ok'=>true,'id'=>$id]); exit;
+}
+
+// Guruhga qo'lda hisobot yuborish — istalgan davr (mode=day|month|all|range)
+if($a=='send_group_report'){
+ header('Content-Type: application/json; charset=utf-8');
+ if(!isLogged() || !isSuper()){ echo json_encode(['ok'=>false,'msg'=>"Ruxsat yo'q"]); exit; }
+ $mode=$_GET['mode'] ?? 'day';
+ if(!in_array($mode,['day','month','all','range'],true)) $mode='day';
+ list($from,$to)=reportRangeForMode($mode,$_GET);
+ $res=sendReportToGroup($from,$to);
+ logActivity('report',"Qo'lda hisobot [$mode] $from..$to → guruh: ".($res['ok']?'OK':($res['msg']??'xato')));
+ echo json_encode($res); exit;
+}
+
+// Backup: butun bazani JSON qilib yuklab olish (faqat Bosh admin)
+if($a=='backup'){
+ if(!isLogged() || !isSuper()){ exit; }
+ $out=['exported_at'=>date('c'),'participants'=>[],'dealers'=>[],'tarifs'=>[],'winners'=>[]];
+ try{ $out['participants']=db()->query("SELECT phone,pretty_phone,name,operator_name,tarif_name,is_paid,dealer_id,status,is_blocked,trashed,promo_count,created_at FROM paid_participants")->fetchAll(); }catch(Exception $e){}
+ try{ $out['dealers']=db()->query("SELECT id,login,name,role,monthly_target,can_add FROM dealers")->fetchAll(); }catch(Exception $e){}
+ try{ $out['tarifs']=db()->query("SELECT operator_name,name,price FROM tarifs")->fetchAll(); }catch(Exception $e){}
+ try{ $out['winners']=db()->query("SELECT phone,name,dealer_id,created_at FROM winners")->fetchAll(); }catch(Exception $e){}
+ logActivity('backup','Backup yuklab olindi');
+ header('Content-Type: application/json; charset=utf-8');
+ header('Content-Disposition: attachment; filename="paynet_backup_'.date('Y-m-d_His').'.json"');
+ echo json_encode($out, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT); exit;
 }
 
 echo json_encode([]);

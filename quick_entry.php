@@ -13,23 +13,23 @@ if($_POST && isset($_POST['rows'])){
 ?>
 <h1 class="font-black text-xl mb-3 flex items-center gap-2"><?php echo icon('keyboard','w-5 h-5'); ?> Tez terish</h1><?php echo $msg; ?>
 
-<div class="card p-4 mb-4 border-[#1fae76]/20">
+<div class="card p-4 mb-4 border-[#7c6cff]/20">
 <h3 class="font-bold mb-3 text-sm">⚙️ Standart qiymatlar <span class="text-white/30 font-normal">— yangi qatorlarga avtomatik qo'yiladi</span></h3>
 <div class="grid md:grid-cols-5 gap-2">
-<select id="defDealer" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-white text-sm"><option value="">Diller tanla...</option><?php foreach($dils as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?></select>
-<select id="defOp" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-white text-sm"><?php foreach($ops as $o): ?><option><?php echo htmlspecialchars($o['name']); ?></option><?php endforeach; ?></select>
-<select id="defTar" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-white text-sm"><option value="">Tarif — hammasiga bir xil</option></select>
-<select id="defPaid" class="p-3 rounded-xl bg-[#172219] border border-white/10 text-white text-sm"><option value="0">BAZAGA</option><option value="1">O'YINGA</option></select>
-<label class="flex items-center gap-2 bg-[#172219] border border-white/10 rounded-xl px-3 text-xs text-[#1fae76] cursor-pointer"><input type="checkbox" id="defPromo" class="w-4 h-4 accent-[#1fae76]">🎁 Hammasiga 1+1</label>
+<select id="defDealer" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-white text-sm"><option value="">Diller tanla...</option><?php foreach($dils as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?></select>
+<select id="defOp" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-white text-sm"><?php foreach($ops as $o): ?><option><?php echo htmlspecialchars($o['name']); ?></option><?php endforeach; ?></select>
+<select id="defTar" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-white text-sm"><option value="">Tarif — hammasiga bir xil</option></select>
+<select id="defPaid" class="p-3 rounded-xl bg-[#16162a] border border-white/10 text-white text-sm"><option value="0">BAZAGA</option><option value="1">O'YINGA</option></select>
+<label class="flex items-center gap-2 bg-[#16162a] border border-white/10 rounded-xl px-3 text-xs text-[#7c6cff] cursor-pointer"><input type="checkbox" id="defPromo" class="w-4 h-4 accent-[#7c6cff]">🎁 Hammasiga 1+1</label>
 </div>
 <p class="text-[10px] text-white/25 mt-2">Diller, operator va tarifni bir marta tanlang — pastda qo'shiladigan har bir yangi qatorga (qo'lda ham, joylashtirishda ham) shu qiymatlar avtomatik qo'yiladi. Kerak bo'lsa, pastda har bir qatorni alohida ham o'zgartirish mumkin.</p>
 </div>
 
 <div class="card p-4 mb-4">
 <h3 class="font-bold mb-2 text-sm">🚀 Tez joylashtirish <span class="text-white/30 font-normal">— nomerlarni qatorma-qator joylashtiring</span></h3>
-<p class="text-[11px] text-white/30 mb-2">Har qatorga bitta nomer. Xohlasangiz ism bilan birga: <code class="text-[#1fae76]">Ism, +998901234567</code> — yoki shunchaki nomerning o'zi.</p>
-<textarea id="pasteBox" rows="4" placeholder="Aziz, +998901234567&#10;+998931112233&#10;Botir, 998971234567" class="w-full p-3 rounded-xl bg-black/50 border border-white/10 text-white text-sm font-mono outline-none focus:border-[#1fae76]/50"></textarea>
-<button type="button" onclick="pasteToRows()" class="mt-2 bg-[#1fae76] text-white px-5 py-2.5 rounded-xl text-xs font-black">⬇️ Qatorlarga aylantirish</button>
+<p class="text-[11px] text-white/30 mb-2">Har qatorga bitta nomer. Xohlasangiz ism bilan birga: <code class="text-[#7c6cff]">Ism, +998901234567</code> — yoki shunchaki nomerning o'zi.</p>
+<textarea id="pasteBox" rows="4" placeholder="Aziz, +998901234567&#10;+998931112233&#10;Botir, 998971234567" class="w-full p-3 rounded-xl bg-black/50 border border-white/10 text-white text-sm font-mono outline-none focus:border-[#7c6cff]/50"></textarea>
+<button type="button" onclick="pasteToRows()" class="mt-2 bg-[#7c6cff] text-white px-5 py-2.5 rounded-xl text-xs font-black">⬇️ Qatorlarga aylantirish</button>
 </div>
 
 <div class="card p-4"><form method="post" id="bulkForm">
@@ -61,13 +61,13 @@ function addRow(prefill){
  const c=document.getElementById('rows'); const d=document.createElement('div'); d.className='grid md:grid-cols-8 gap-2 bg-black/20 p-2 rounded-xl border border-white/5 items-center';
  const defDealer=document.getElementById('defDealer').value; const defOp=document.getElementById('defOp').value; const defPaid=document.getElementById('defPaid').value; const defPromo=document.getElementById('defPromo').checked; const defTar=document.getElementById('defTar').value;
  const nameVal = prefill.name||''; const phoneVal = prefill.phone ? fmt(prefill.phone) : '';
- d.innerHTML = `<input name="rows[${idx}][name]" value="${nameVal.replace(/"/g,'&quot;')}" placeholder="Ism" class="p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white">`+
-  `<input name="rows[${idx}][phone]" value="${phoneVal}" placeholder="+998" oninput="autoFmt(this)" onkeydown="phoneKeydown(event,this)" class="p-2 rounded-lg bg-[#172219] border border-white/10 text-sm font-mono text-white">`+
-  `<select name="rows[${idx}][operator]" onchange="upd(this)" class="op p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white">${ops.map(o=>`<option ${o===defOp?'selected':''}>${o}</option>`).join('')}</select>`+
-  `<select name="rows[${idx}][tarif]" class="tar p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white"></select>`+
-  `<select name="rows[${idx}][is_paid]" class="p-2 rounded-lg bg-[#172219] text-sm text-white"><option value="0" ${defPaid==='0'?'selected':''}>BAZAGA</option><option value="1" ${defPaid==='1'?'selected':''}>O'YINGA</option></select>`+
-  `<select name="rows[${idx}][dealer_id]" required class="p-2 rounded-lg bg-[#172219] border border-white/10 text-sm text-white"><option value="">Diller</option>${dils.map(x=>`<option value="${x.id}" ${String(x.id)===defDealer?'selected':''}>${x.name}</option>`).join('')}</select>`+
-  `<label class="flex items-center gap-1 text-[10px] text-[#1fae76] cursor-pointer"><input type="checkbox" name="rows[${idx}][promo_1_1]" value="1" ${defPromo?'checked':''} class="w-4 h-4 accent-[#1fae76]">1+1</label>`+
+ d.innerHTML = `<input name="rows[${idx}][name]" value="${nameVal.replace(/"/g,'&quot;')}" placeholder="Ism" class="p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white">`+
+  `<input name="rows[${idx}][phone]" value="${phoneVal}" placeholder="+998" oninput="autoFmt(this)" onkeydown="phoneKeydown(event,this)" class="p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm font-mono text-white">`+
+  `<select name="rows[${idx}][operator]" onchange="upd(this)" class="op p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white">${ops.map(o=>`<option ${o===defOp?'selected':''}>${o}</option>`).join('')}</select>`+
+  `<select name="rows[${idx}][tarif]" class="tar p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white"></select>`+
+  `<select name="rows[${idx}][is_paid]" class="p-2 rounded-lg bg-[#16162a] text-sm text-white"><option value="0" ${defPaid==='0'?'selected':''}>BAZAGA</option><option value="1" ${defPaid==='1'?'selected':''}>O'YINGA</option></select>`+
+  `<select name="rows[${idx}][dealer_id]" required class="p-2 rounded-lg bg-[#16162a] border border-white/10 text-sm text-white"><option value="">Diller</option>${dils.map(x=>`<option value="${x.id}" ${String(x.id)===defDealer?'selected':''}>${x.name}</option>`).join('')}</select>`+
+  `<label class="flex items-center gap-1 text-[10px] text-[#7c6cff] cursor-pointer"><input type="checkbox" name="rows[${idx}][promo_1_1]" value="1" ${defPromo?'checked':''} class="w-4 h-4 accent-[#7c6cff]">1+1</label>`+
   `<button type="button" onclick="removeRow(this)" class="text-red-400 hover:text-red-300 text-lg font-black" title="Qatorni o'chirish">✕</button>`;
  c.appendChild(d);
  const opSel=d.querySelector('.op');

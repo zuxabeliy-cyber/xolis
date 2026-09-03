@@ -7,7 +7,10 @@ define('DB_PASS','Andijon2@');
 function db(){ static $p=null; if($p) return $p; $p=new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=utf8mb4",DB_USER,DB_PASS,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]); return $p; }
 function isLogged(){ return isset($_SESSION['user']); }
 function isSuper(){ return isLogged() && $_SESSION['user']['role']=='super'; }
-function requireLogin(){ if(!isLogged()){ header("Location: login.php"); exit; } }
+function requireLogin(){ if(!isLogged()){ header("Location: login.php"); exit; }
+ $to=(int)getSetting('session_timeout_min');
+ if($to>0){ $now=time(); if(isset($_SESSION['last_activity']) && ($now-$_SESSION['last_activity'])>$to*60){ session_unset(); session_destroy(); header("Location: login.php?timeout=1"); exit; } $_SESSION['last_activity']=$now; }
+}
 function getSetting($k){ try{ $s=db()->prepare("SELECT svalue FROM settings WHERE skey=?"); $s->execute([$k]); $r=$s->fetch(); return $r['svalue']??''; }catch(Exception $e){ return ''; } }
 function sendToChannel($text){ $tok=getSetting('bot_token'); if(!$tok) $tok='8956274863:AAHhy99dkoeAK3RBzCQ4S78GtlWH3F8BLK8'; $chat=getSetting('channel'); if(!$chat) return false; $url="https://api.telegram.org/bot$tok/sendMessage"; $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>['chat_id'=>$chat,'text'=>$text,'parse_mode'=>'HTML'],CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>8]); $r=curl_exec($ch); curl_close($ch); return $r; }
 // "BAZAGA" tugmasi sozlamasi: yoqilgan bo'lsa - BAZAGA bosilganda kanalga ketadi; o'chirilgan bo'lsa - eski usul (O'YINDA kanalga ketadi), faqat BAZAGA tugmasi ekranda birinchi/asosiy bo'lib turadi
@@ -44,6 +47,13 @@ function ensureSchema(){
  try{ $col=db()->query("SHOW COLUMNS FROM dealers LIKE 'last_seen_chat_id'")->fetch(); if(!$col){ db()->exec("ALTER TABLE dealers ADD COLUMN last_seen_chat_id INT NOT NULL DEFAULT 0"); } }catch(Exception $e){}
  try{ db()->prepare("INSERT IGNORE INTO tarifs (operator_name,name) VALUES ('Mobiuz','L 55')")->execute(); db()->prepare("INSERT IGNORE INTO tarifs (operator_name,name) VALUES ('Mobiuz','M 45')")->execute(); }catch(Exception $e){}
  try{ db()->exec("CREATE TABLE IF NOT EXISTS chat_messages (id INT AUTO_INCREMENT PRIMARY KEY, sender_id INT NOT NULL, sender_name VARCHAR(100), message TEXT, image_path VARCHAR(255) NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"); }catch(Exception $e){}
+ // Chiqindi qutisi (soft delete): o'chirilgan nomerlar butunlay yo'qolmaydi, tiklash mumkin
+ try{ $col=db()->query("SHOW COLUMNS FROM paid_participants LIKE 'trashed'")->fetch(); if(!$col){ db()->exec("ALTER TABLE paid_participants ADD COLUMN trashed TINYINT(1) NOT NULL DEFAULT 0"); } }catch(Exception $e){}
+ try{ $col=db()->query("SHOW COLUMNS FROM paid_participants LIKE 'trashed_at'")->fetch(); if(!$col){ db()->exec("ALTER TABLE paid_participants ADD COLUMN trashed_at DATETIME NULL"); } }catch(Exception $e){}
+ // Faollik jurnali (audit log)
+ try{ db()->exec("CREATE TABLE IF NOT EXISTS activity_log (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NULL, user_name VARCHAR(100), action VARCHAR(50), detail VARCHAR(500), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"); }catch(Exception $e){}
+ // Baraban aylanishlar tarixi
+ try{ db()->exec("CREATE TABLE IF NOT EXISTS spin_log (id INT AUTO_INCREMENT PRIMARY KEY, ym VARCHAR(7), pool VARCHAR(10), winners TEXT, created_by INT NULL, created_by_name VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"); }catch(Exception $e){}
  try{
   if(getSetting('pwd_migrated')!='1'){
    $rows=db()->query("SELECT id,password FROM dealers")->fetchAll();
@@ -68,13 +78,18 @@ function buildDateCond($from,$to,$col='p.created_at'){
 }
 
 // Kutilmoqdagi (tasdiqlanmagan) nomerlar soni - menyudagi badge va bildirishnoma uchun
-function pendingCount(){ try{ return (int)db()->query("SELECT COUNT(*) FROM paid_participants WHERE status='pending'")->fetchColumn(); }catch(Exception $e){ return 0; } }
+function pendingCount(){ try{ return (int)db()->query("SELECT COUNT(*) FROM paid_participants WHERE status='pending' AND trashed=0")->fetchColumn(); }catch(Exception $e){ return 0; } }
+
+// Faollik jurnaliga yozuv qo'shadi (kim, qachon, nima qildi)
+function logActivity($action,$detail=''){ try{ $u=$_SESSION['user']??null; db()->prepare("INSERT INTO activity_log (user_id,user_name,action,detail) VALUES (?,?,?,?)")->execute([$u['id']??null,$u['name']??'—',$action,mb_substr((string)$detail,0,500)]); }catch(Exception $e){} }
+// Chiqindi qutisidagi (o'chirilgan) nomerlar soni
+function trashCount(){ try{ return (int)db()->query("SELECT COUNT(*) FROM paid_participants WHERE trashed=1")->fetchColumn(); }catch(Exception $e){ return 0; } }
 
 // Bitta dillerning jamlangan pul balansi (tasdiqlangan, bloklanmagan nomerlar bo'yicha, har bir nomer uchun tarif narxi 1 marta hisoblanadi - 1+1 aksiya pulga ta'sir qilmaydi)
 function dealerBalance($dealerId,$from=null,$to=null){
  try{
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
-  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 $cond";
+  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond";
   $s=db()->prepare($sql); $s->execute(array_merge([$dealerId],$params)); return (float)$s->fetchColumn();
  }catch(Exception $e){ return 0; }
 }
@@ -86,7 +101,7 @@ function allDealerBalances($from=null,$to=null,$sort='balance',$dir='DESC'){
   $orderMap=['balance'=>'balance','cnt'=>'cnt','name'=>'d.name','monthly_target'=>'d.monthly_target'];
   $orderCol=$orderMap[$sort] ?? 'balance';
   $dir = strtoupper($dir)==='ASC' ? 'ASC' : 'DESC';
-  $sql="SELECT d.id, d.name, d.role, d.monthly_target, COALESCE(SUM(t.price),0) as balance, COUNT(p.id) as cnt FROM dealers d LEFT JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND p.is_blocked=0 $cond LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE d.role='diller' GROUP BY d.id ORDER BY $orderCol $dir";
+  $sql="SELECT d.id, d.name, d.role, d.monthly_target, COALESCE(SUM(t.price),0) as balance, COUNT(p.id) as cnt FROM dealers d LEFT JOIN paid_participants p ON p.dealer_id=d.id AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE d.role='diller' GROUP BY d.id ORDER BY $orderCol $dir";
   $s=db()->prepare($sql); $s->execute($params); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -95,7 +110,7 @@ function allDealerBalances($from=null,$to=null,$sort='balance',$dir='DESC'){
 function totalBalance($from=null,$to=null){
  try{
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
-  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 $cond";
+  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond";
   $s=db()->prepare($sql); $s->execute($params); return (float)$s->fetchColumn();
  }catch(Exception $e){ return 0; }
 }
@@ -105,7 +120,7 @@ function periodSum($fromDT,$toDT,$dealerId=null){
  try{
   $dcond=''; $params=[$fromDT,$toDT];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $params[]=$dealerId; }
-  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.created_at>=? AND p.created_at<=? $dcond";
+  $sql="SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 AND p.created_at>=? AND p.created_at<=? $dcond";
   $s=db()->prepare($sql); $s->execute($params); return (float)$s->fetchColumn();
  }catch(Exception $e){ return 0; }
 }
@@ -116,7 +131,7 @@ function operatorBalances($dealerId=null,$from=null,$to=null){
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
   $dcond=''; $dparams=[];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $dparams[]=$dealerId; }
-  $sql="SELECT p.operator_name, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 $dcond $cond GROUP BY p.operator_name ORDER BY balance DESC";
+  $sql="SELECT p.operator_name, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $dcond $cond GROUP BY p.operator_name ORDER BY balance DESC";
   $s=db()->prepare($sql); $s->execute(array_merge($dparams,$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -127,7 +142,7 @@ function tarifBalancesForOperator($operatorName,$dealerId=null,$from=null,$to=nu
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
   $dcond=''; $dparams=[];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $dparams[]=$dealerId; }
-  $sql="SELECT p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.operator_name=? AND p.status='approved' AND p.is_blocked=0 $dcond $cond GROUP BY p.tarif_name, t.price ORDER BY balance DESC";
+  $sql="SELECT p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.operator_name=? AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $dcond $cond GROUP BY p.tarif_name, t.price ORDER BY balance DESC";
   $s=db()->prepare($sql); $s->execute(array_merge([$operatorName],$dparams,$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -138,7 +153,7 @@ function topTarifs($limit=5,$dealerId=null,$from=null,$to=null){
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
   $dcond=''; $dparams=[];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $dparams[]=$dealerId; }
-  $sql="SELECT p.operator_name, p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 $dcond $cond GROUP BY p.operator_name,p.tarif_name,t.price ORDER BY balance DESC LIMIT ".intval($limit);
+  $sql="SELECT p.operator_name, p.tarif_name, t.price, COALESCE(SUM(t.price),0) balance, COUNT(*) cnt FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $dcond $cond GROUP BY p.operator_name,p.tarif_name,t.price ORDER BY balance DESC LIMIT ".intval($limit);
   $s=db()->prepare($sql); $s->execute(array_merge($dparams,$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -148,7 +163,7 @@ function monthlyRevenue($months=12,$dealerId=null){
  try{
   $dcond=''; $params=[$months];
   if($dealerId){ $dcond=" AND p.dealer_id=?"; $params[]=$dealerId; }
-  $sql="SELECT DATE_FORMAT(p.created_at,'%Y-%m') ym, COALESCE(SUM(t.price),0) balance FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH) $dcond GROUP BY ym ORDER BY ym ASC";
+  $sql="SELECT DATE_FORMAT(p.created_at,'%Y-%m') ym, COALESCE(SUM(t.price),0) balance FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.status='approved' AND p.is_blocked=0 AND p.trashed=0 AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH) $dcond GROUP BY ym ORDER BY ym ASC";
   $s=db()->prepare($sql); $s->execute($params);
   $rows=$s->fetchAll(); $map=[]; foreach($rows as $r){ $map[$r['ym']]=(float)$r['balance']; }
   $out=[]; for($i=$months-1;$i>=0;$i--){ $ym=date('Y-m', strtotime("-$i months")); $out[]=['ym'=>$ym,'balance'=>$map[$ym]??0]; }
@@ -160,7 +175,7 @@ function monthlyRevenue($months=12,$dealerId=null){
 function dealerParticipantsDetailed($dealerId,$from=null,$to=null){
  try{
   list($cond,$params)=buildDateCond($from,$to,'p.created_at');
-  $sql="SELECT p.name,p.pretty_phone,p.operator_name,p.tarif_name,t.price,p.created_at,p.promo_count FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 $cond ORDER BY p.created_at DESC";
+  $sql="SELECT p.name,p.pretty_phone,p.operator_name,p.tarif_name,t.price,p.created_at,p.promo_count FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE p.dealer_id=? AND p.status='approved' AND p.is_blocked=0 AND p.trashed=0 $cond ORDER BY p.created_at DESC";
   $s=db()->prepare($sql); $s->execute(array_merge([$dealerId],$params)); return $s->fetchAll();
  }catch(Exception $e){ return []; }
 }
@@ -221,6 +236,120 @@ function notifyAdminPending($text){
  $tok=getSetting('bot_token'); if(!$tok) $tok='8956274863:AAHhy99dkoeAK3RBzCQ4S78GtlWH3F8BLK8';
  $url="https://api.telegram.org/bot$tok/sendMessage";
  $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>['chat_id'=>$chatId,'text'=>$text,'parse_mode'=>'HTML'],CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>8]); $r=curl_exec($ch); curl_close($ch); return $r;
+}
+
+// ==================== OYLIK AJRATISH (har oy alohida) ====================
+// Har bir oy alohida ko'riladi. Yangi oy 0 dan boshlanadi (ma'lumot o'chirilmaydi, faqat filtr).
+function uzMonthName($mo){ $m=['01'=>'Yanvar','02'=>'Fevral','03'=>'Mart','04'=>'Aprel','05'=>'May','06'=>'Iyun','07'=>'Iyul','08'=>'Avgust','09'=>'Sentabr','10'=>'Oktabr','11'=>'Noyabr','12'=>'Dekabr']; return $m[$mo]??$mo; }
+function monthLabel($ym){ if($ym==='all') return 'Barcha oylar'; if(!preg_match('/^(\d{4})-(\d{2})$/',$ym,$mm)) return $ym; return uzMonthName($mm[2]).' '.$mm[1]; }
+function currentMonth(){ return date('Y-m'); }
+// GET['ym'] dan tanlangan oyni oladi (default: joriy oy). 'all' = barcha oylar.
+function selectedMonth(){ $m=$_GET['ym']??''; if($m==='all') return 'all'; if(preg_match('/^\d{4}-\d{2}$/',$m)) return $m; return date('Y-m'); }
+// Tanlangan oy uchun SQL sharti ($col ustuni bo'yicha). 'all' bo'lsa - cheklovsiz.
+function monthCond($ym,$col='p.created_at'){ if($ym==='all'||$ym==='') return ['',[]]; return [" AND DATE_FORMAT($col,'%Y-%m')=?",[$ym]]; }
+// Bazada mavjud oylar ro'yxati (eng yangisi birinchi) + doim joriy oy
+function availableMonths(){
+ try{ $rows=db()->query("SELECT DISTINCT DATE_FORMAT(created_at,'%Y-%m') ym FROM paid_participants WHERE created_at IS NOT NULL ORDER BY ym DESC")->fetchAll(); $out=[]; foreach($rows as $r){ if(!empty($r['ym'])) $out[]=$r['ym']; } }catch(Exception $e){ $out=[]; }
+ $cur=date('Y-m'); if(!in_array($cur,$out,true)) array_unshift($out,$cur);
+ return $out;
+}
+// Sahifa tepasidagi oy tanlagich UI - bitta ochiladigan ro'yxat (dropdown). $extra - saqlanadigan boshqa GET parametrlar
+function monthSelectorHtml($selected,$extra=[]){
+ $months=availableMonths();
+ $opts='';
+ foreach($months as $m){ $opts.='<option value="'.htmlspecialchars($m).'"'.($selected===$m?' selected':'').'>'.htmlspecialchars(monthLabel($m)).'</option>'; }
+ $opts.='<option value="all"'.($selected==='all'?' selected':'').'>Barcha oylar</option>';
+ $ej=json_encode((object)$extra, JSON_UNESCAPED_UNICODE);
+ $uid='ms'.substr(md5(uniqid('',true)),0,6);
+ $h='<div class="card p-3 mb-4 flex items-center gap-2">';
+ $h.='<span class="text-[11px] text-white/40 tracking-widest font-bold whitespace-nowrap">📅 OY:</span>';
+ $h.='<select id="'.$uid.'" onchange="(function(v){var p=new URLSearchParams('.$ej.');p.set(\'ym\',v);window.location=window.location.pathname+\'?\'+p.toString();})(this.value)" class="flex-1 bg-[#16162a] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-[#7c6cff]/50">'.$opts.'</select>';
+ $h.='</div>';
+ return $h;
+}
+
+// ==================== TELEGRAM HISOBOT GURUHI ====================
+// Hisobotlar kanalga emas, alohida guruhga boradi. Sozlamada guruh ID + (ixtiyoriy) alohida bot token.
+function reportBotToken(){ $t=trim(getSetting('report_bot_token')); if($t!=='') return $t; $t=trim(getSetting('bot_token')); if($t!=='') return $t; return '8956274863:AAHhy99dkoeAK3RBzCQ4S78GtlWH3F8BLK8'; }
+function reportGroup(){ return trim(getSetting('report_group')); }
+function tgApi($method,$fields,$multipart=false){
+ $tok=reportBotToken(); $url="https://api.telegram.org/bot$tok/$method";
+ $ch=curl_init($url);
+ $opt=[CURLOPT_POST=>1,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>40];
+ $opt[CURLOPT_POSTFIELDS]=$multipart?$fields:http_build_query($fields);
+ curl_setopt_array($ch,$opt);
+ $r=curl_exec($ch); curl_close($ch);
+ return json_decode($r,true);
+}
+function sendToGroup($text){ $g=reportGroup(); if($g==='') return ['ok'=>false,'msg'=>"Guruh sozlanmagan"]; $r=tgApi('sendMessage',['chat_id'=>$g,'text'=>$text,'parse_mode'=>'HTML']); return ['ok'=>!empty($r['ok']),'msg'=>$r['description']??'']; }
+function sendDocToGroup($filepath,$caption=''){ $g=reportGroup(); if($g===''||!file_exists($filepath)) return false; $cf=function_exists('curl_file_create')?curl_file_create($filepath):('@'.$filepath); $r=tgApi('sendDocument',['chat_id'=>$g,'caption'=>$caption,'document'=>$cf],true); return !empty($r['ok']); }
+// getUpdates orqali oxirgi guruh chat_id sini avtomatik topadi (bot guruhga admin bo'lib, guruhga xabar yozilgach)
+function detectGroupId(){ $r=tgApi('getUpdates',['limit'=>50,'timeout'=>0]); if(empty($r['ok'])) return null; $found=null; foreach($r['result'] as $up){ $chat=$up['message']['chat']??($up['channel_post']['chat']??($up['my_chat_member']['chat']??null)); if($chat && in_array(($chat['type']??''),['group','supergroup'],true)){ $found=$chat['id']; } } return $found; }
+
+// Davr (from..to) bo'yicha hisobot ma'lumotlari — har bir diller alohida breakdown bilan
+function reportRangeData($from,$to){
+ $data=['from'=>$from,'to'=>$to,'total'=>0,'game'=>0,'baza'=>0,'som'=>0,'ops'=>[],'dealers'=>[],'perDealer'=>[],'rows'=>[]];
+ $c="p.status='approved' AND p.trashed=0 AND DATE(p.created_at) BETWEEN '$from' AND '$to'";
+ try{
+  $data['total']=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants p WHERE $c")->fetchColumn();
+  $data['game']=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants p WHERE $c AND is_paid=1")->fetchColumn();
+  $data['baza']=(int)db()->query("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants p WHERE $c AND is_paid=0")->fetchColumn();
+  $data['som']=(float)db()->query("SELECT COALESCE(SUM(t.price),0) FROM paid_participants p JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE $c AND p.is_blocked=0")->fetchColumn();
+  $data['ops']=db()->query("SELECT p.operator_name, COUNT(*) cnt, COALESCE(SUM(t.price),0) som FROM paid_participants p LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE $c GROUP BY p.operator_name ORDER BY cnt DESC")->fetchAll();
+  $data['dealers']=db()->query("SELECT d.id, d.name, COUNT(p.id) cnt, COALESCE(SUM(t.price),0) som, SUM(CASE WHEN p.is_paid=1 THEN p.promo_count ELSE 0 END) game, SUM(CASE WHEN p.is_paid=0 THEN p.promo_count ELSE 0 END) baza FROM dealers d JOIN paid_participants p ON p.dealer_id=d.id AND $c LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE d.role='diller' GROUP BY d.id ORDER BY cnt DESC")->fetchAll();
+  $opRows=db()->query("SELECT p.dealer_id, p.operator_name, COUNT(*) cnt, COALESCE(SUM(t.price),0) som FROM paid_participants p LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE $c GROUP BY p.dealer_id, p.operator_name ORDER BY cnt DESC")->fetchAll();
+  $byd=[]; foreach($opRows as $r){ $byd[$r['dealer_id']][]=$r; }
+  foreach($data['dealers'] as $dl){ $dl['ops']=$byd[$dl['id']]??[]; $data['perDealer'][]=$dl; }
+  $data['rows']=db()->query("SELECT p.name,p.pretty_phone,p.operator_name,p.tarif_name,t.price,p.is_paid,d.name dealer_name,p.created_at FROM paid_participants p LEFT JOIN dealers d ON d.id=p.dealer_id LEFT JOIN tarifs t ON t.operator_name=p.operator_name AND t.name=p.tarif_name WHERE $c ORDER BY d.name, p.id DESC")->fetchAll();
+ }catch(Exception $e){}
+ return $data;
+}
+function reportPeriodLabel($from,$to){ if($from===$to) return date('d.m.Y',strtotime($from)); return date('d.m.Y',strtotime($from)).' — '.date('d.m.Y',strtotime($to)); }
+function fmtSom($n){ return number_format((float)$n,0,'.',' '); }
+// Bitta diller uchun alohida xabar matni
+function reportDealerMsg($dl,$label){
+ $t="👤 <b>".$dl['name']."</b>\n<i>$label</i>\n";
+ $t.="Jami: <b>{$dl['cnt']}</b> ta  •  🎯 O'YINDA: <b>{$dl['game']}</b>  •  🗂 BAZADA: <b>{$dl['baza']}</b>\n";
+ $t.="💰 Summa: <b>".fmtSom($dl['som'])." so'm</b>\n";
+ if(!empty($dl['ops'])){ $t.="Kompaniyalar bo'yicha:\n"; foreach($dl['ops'] as $o){ $t.="   ▫️ ".$o['operator_name'].": <b>".$o['cnt']."</b> ta — ".fmtSom($o['som'])." so'm\n"; } }
+ return $t;
+}
+// Umumiy (oxirgi) xabar matni
+function reportOverallMsg($d,$label){
+ $t="📊 <b>UMUMIY HISOBOT</b>\n<i>$label</i>\n\n";
+ $t.="👥 Jami: <b>{$d['total']}</b> ta\n🎯 O'YINDA: <b>{$d['game']}</b>\n🗂 BAZADA: <b>{$d['baza']}</b>\n💰 Summa: <b>".fmtSom($d['som'])." so'm</b>\n";
+ if($d['ops']){ $t.="\n📡 <b>KOMPANIYALAR:</b>\n"; foreach($d['ops'] as $o){ $t.="• ".$o['operator_name'].": <b>".$o['cnt']."</b> ta — ".fmtSom($o['som'])." so'm\n"; } }
+ if($d['dealers']){ $md=['🥇','🥈','🥉']; $t.="\n🏆 <b>DILLERLAR REYTINGI:</b>\n"; foreach($d['dealers'] as $i=>$dl){ $t.=($md[$i]??(($i+1).'.'))." ".$dl['name'].": <b>".$dl['cnt']."</b> ta — ".fmtSom($dl['som'])." so'm\n"; } }
+ if(!$d['total']) $t.="\nBu davrda yangi nomer qo'shilmadi.";
+ return $t;
+}
+function reportWriteCsv($path,$header,$rows){ $out=fopen($path,'w'); if(!$out) return false; fwrite($out,"\xEF\xBB\xBF"); fputcsv($out,$header); foreach($rows as $r) fputcsv($out,$r); fclose($out); return true; }
+// Davr hisobotini guruhga yuboradi: 1) har diller alohida  2) umumiy  3) Excel fayllar
+function sendReportToGroup($from,$to){
+ @set_time_limit(0);
+ if(reportGroup()===''){ return ['ok'=>false,'msg'=>"Guruh sozlanmagan (Sozlama → Hisobot guruhi)"]; }
+ if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$from)) $from=date('Y-m-d');
+ if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$to)) $to=$from;
+ $d=reportRangeData($from,$to); $label=reportPeriodLabel($from,$to);
+ $head=sendToGroup("🗓 <b>HISOBOT — $label</b>\n\nAvval har bir diller alohida, oxirida umumiy hisobot 👇");
+ if(empty($head['ok'])) return ['ok'=>false,'msg'=>($head['msg']?:"Yuborilmadi — guruh ID/token to'g'rimi?")];
+ foreach($d['perDealer'] as $dl){ sendToGroup(reportDealerMsg($dl,$label)); usleep(350000); }
+ sendToGroup(reportOverallMsg($d,$label));
+ // Excel fayllar (butun davr)
+ $tmp=sys_get_temp_dir(); $tag=$from.($from!==$to?'_'.$to:'');
+ if($d['rows']){ $p=$tmp."/xolis_royxat_$tag.csv"; $rows=[]; foreach($d['rows'] as $r){ $rows[]=[$r['dealer_name'],$r['name'],$r['pretty_phone'],$r['operator_name'],$r['tarif_name'],$r['price'],$r['is_paid']?"O'YINDA":'BAZADA',$r['created_at']]; } if(reportWriteCsv($p,['Diller','Ism','Nomer','Operator','Tarif','Narx','Turi','Sana'],$rows)){ sendDocToGroup($p,"📋 To'liq ro'yxat — $label"); @unlink($p); } }
+ if($d['dealers']){ $p=$tmp."/xolis_dillerlar_$tag.csv"; $rows=[]; foreach($d['dealers'] as $dl){ $rows[]=[$dl['name'],$dl['cnt'],$dl['game'],$dl['baza'],$dl['som']]; } if(reportWriteCsv($p,['Diller','Jami','O\'yinda','Bazada','Summa (som)'],$rows)){ sendDocToGroup($p,"👤 Dillerlar bo'yicha — $label"); @unlink($p); } }
+ if($d['ops']){ $p=$tmp."/xolis_kompaniyalar_$tag.csv"; $rows=[]; foreach($d['ops'] as $o){ $rows[]=[$o['operator_name'],$o['cnt'],$o['som']]; } if(reportWriteCsv($p,['Kompaniya','Soni','Summa (som)'],$rows)){ sendDocToGroup($p,"📡 Kompaniyalar bo'yicha — $label"); @unlink($p); } }
+ return ['ok'=>true];
+}
+// Eski nom bilan mos: bitta kun
+function sendDayReportToGroup($date){ return sendReportToGroup($date,$date); }
+// Davr chegaralarini rejim bo'yicha hisoblaydi: day / month / all / range
+function reportRangeForMode($mode,$p=[]){
+ if($mode==='month'){ $ym=(isset($p['ym'])&&preg_match('/^\d{4}-\d{2}$/',$p['ym']))?$p['ym']:date('Y-m'); return [$ym.'-01', date('Y-m-t',strtotime($ym.'-01'))]; }
+ if($mode==='all'){ $min=date('Y-m-d'); try{ $m=db()->query("SELECT DATE(MIN(created_at)) FROM paid_participants")->fetchColumn(); if($m) $min=$m; }catch(Exception $e){} return [$min, date('Y-m-d')]; }
+ if($mode==='range'){ $f=(isset($p['from'])&&preg_match('/^\d{4}-\d{2}-\d{2}$/',$p['from']))?$p['from']:date('Y-m-d'); $t=(isset($p['to'])&&preg_match('/^\d{4}-\d{2}-\d{2}$/',$p['to']))?$p['to']:$f; return [$f,$t]; }
+ $dt=(isset($p['date'])&&preg_match('/^\d{4}-\d{2}-\d{2}$/',$p['date']))?$p['date']:date('Y-m-d'); return [$dt,$dt];
 }
 
 // Ko'p qo'shish / Tez terish sahifalari uchun umumiy: qatorlar ro'yxatini bazaga qo'shadi

@@ -9,6 +9,7 @@ try{
   $tpl=getSetting('template_winner'); if(!$tpl) $tpl="✅ TASDIQLANDI!\n1. Diller: {diller}\n2. Ism: {ism}\n3. Nomer: {nomer}\n4. Operator: {operator}\n5. Tarif: {tarif}";
   $txt=str_replace(['{diller}','{ism}','{nomer}','{operator}','{tarif}'],[$r['dealer_name'],$r['name'],$r['pretty_phone'],$r['operator_name'],$r['tarif_name']],$tpl);
   sendToChannel($txt);
+  logActivity('winner', "G'olib: ".$r['name']." ".$r['pretty_phone']." (".$r['operator_name'].")");
  }
 }catch(Exception $e){}
 header("Location: winners.php");

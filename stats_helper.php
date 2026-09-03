@@ -8,11 +8,12 @@ function statsFilters(){
   'from' => $_GET['from'] ?? '',
   'to' => $_GET['to'] ?? '',
   'dealer_id' => intval($_GET['dealer_id'] ?? 0),
+  'ym' => $_GET['ym'] ?? '',
  ];
 }
 
 function buildStatsWhere($params){
- $w=""; $p=[];
+ $w=" AND p.trashed=0"; $p=[];
  $f = $params['f'] ?? 'all';
  $days = intval($params['days'] ?? 0);
  $from = $params['from'] ?? ''; $to = $params['to'] ?? '';
@@ -26,6 +27,10 @@ function buildStatsWhere($params){
  if(!empty($params['dealer_id'])){ $w.=" AND p.dealer_id=?"; $p[]=intval($params['dealer_id']); }
  if(!empty($params['operator'])){ $w.=" AND p.operator_name=?"; $p[]=$params['operator']; }
  if(!empty($params['tarif'])){ $w.=" AND p.tarif_name=?"; $p[]=$params['tarif']; }
+ // Oylik ajratish: har oy alohida. Default - joriy oy. Qo'lda sana oralig'i (range) tanlansa oy qulfi olib tashlanadi.
+ $ym = $params['ym'] ?? '';
+ if($ym==='') $ym = ($f==='range') ? 'all' : date('Y-m');
+ if($ym!=='all' && preg_match('/^\d{4}-\d{2}$/',$ym)){ $w.=" AND DATE_FORMAT(p.created_at,'%Y-%m')=?"; $p[]=$ym; }
  return [$w,$p];
 }
 
@@ -79,7 +84,7 @@ function prevPeriodRange($f, $days=0, $from='', $to=''){
 }
 
 function countInRange($dateFrom, $dateTo, $dealerId=0){
- $w=" AND DATE(p.created_at) BETWEEN ? AND ? AND p.status='approved'"; $p=[$dateFrom,$dateTo];
+ $w=" AND DATE(p.created_at) BETWEEN ? AND ? AND p.status='approved' AND p.trashed=0"; $p=[$dateFrom,$dateTo];
  if($dealerId){ $w.=" AND p.dealer_id=?"; $p[]=$dealerId; }
  try{ $st=db()->prepare("SELECT COALESCE(SUM(promo_count),0) FROM paid_participants p WHERE 1 $w"); $st->execute($p); return (int)$st->fetchColumn(); }catch(Exception $e){ return 0; }
 }

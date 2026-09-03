@@ -35,10 +35,10 @@ if(isset($_POST['login_id']) && isset($_POST['new_login_val']) && trim($_POST['n
 try{ $all=db()->query("SELECT d.*, (SELECT COUNT(*) FROM paid_participants p WHERE p.dealer_id=d.id AND p.status='approved') cnt, (SELECT COUNT(*) FROM paid_participants p WHERE p.dealer_id=d.id AND p.status='pending') pcnt FROM dealers d ORDER BY cnt DESC")->fetchAll(); }catch(Exception $e){ $all=[]; }
 $medals=['🥇','🥈','🥉']; $rank=0;
 $toast='';
-if(isset($_GET['ok'])) $toast='<div class="bg-white/5 border border-[#1fae76]/20 text-[#1fae76] p-3 rounded-xl text-sm">✅ '.(($_GET['role']??'')==='super' ? 'Yangi Bosh admin qo\'shildi' : 'Diller qo\'shildi').'</div>';
+if(isset($_GET['ok'])) $toast='<div class="bg-white/5 border border-[#7c6cff]/20 text-[#7c6cff] p-3 rounded-xl text-sm">✅ '.(($_GET['role']??'')==='super' ? 'Yangi Bosh admin qo\'shildi' : 'Diller qo\'shildi').'</div>';
 elseif(isset($_GET['del'])) $toast='<div class="bg-white/5 border border-white/10 p-3 rounded-xl text-sm">🗑 Diller o\'chirildi</div>';
-elseif(isset($_GET['reset'])) $toast='<div class="bg-white/5 border border-[#1fae76]/20 text-[#1fae76] p-3 rounded-xl text-sm">✅ Parol yangilandi</div>';
-elseif(isset($_GET['loginok'])) $toast='<div class="bg-white/5 border border-[#1fae76]/20 text-[#1fae76] p-3 rounded-xl text-sm">✅ Login yangilandi</div>';
+elseif(isset($_GET['reset'])) $toast='<div class="bg-white/5 border border-[#7c6cff]/20 text-[#7c6cff] p-3 rounded-xl text-sm">✅ Parol yangilandi</div>';
+elseif(isset($_GET['loginok'])) $toast='<div class="bg-white/5 border border-[#7c6cff]/20 text-[#7c6cff] p-3 rounded-xl text-sm">✅ Login yangilandi</div>';
 elseif(isset($_GET['err'])){
  $toast = $_GET['err']=='dup'
   ? '<div class="bg-red-500/10 border border-red-500/20 text-red-300 p-3 rounded-xl text-sm">❌ Bu login band, boshqa login tanlang</div>'
@@ -55,7 +55,7 @@ elseif(isset($_GET['err'])){
 <p class="text-[11px] text-white/30 mt-2">👑 "Bosh admin" tanlansa, yangi hisob to'liq admin huquqiga (tasdiqlash, sozlamalar, boshqa dillerlarni boshqarish) ega bo'ladi — faqat ishonchli odamlarga bering.</p>
 </div>
 <?php if($u['id']==1): ?>
-<div id="access" class="card p-4 mb-4 border-[#1fae76]/20">
+<div id="access" class="card p-4 mb-4 border-[#7c6cff]/20">
 <h3 class="font-black text-sm mb-1">🔒 Nomer qo'shish ruxsati</h3>
 <p class="text-[11px] text-white/30 mb-3">Diller uchun o'chirilsa, u "Bitta qo'shish" orqali yangi nomer yubora olmaydi. Faqat sizga (1-Bosh admin) ko'rinadi.</p>
 <div class="space-y-2">
@@ -63,7 +63,7 @@ elseif(isset($_GET['err'])){
 <div class="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-xl">
 <span class="text-sm font-bold"><?php echo htmlspecialchars($d['name']); ?></span>
 <form method="post"><input type="hidden" name="toggle_add_id" value="<?php echo $d['id']; ?>"><input type="hidden" name="toggle_add_val" value="<?php echo $on ? 0 : 1; ?>">
-<button type="submit" class="relative w-14 h-8 rounded-full transition <?php echo $on ? 'bg-[#1fae76]' : 'bg-white/10 border border-white/15'; ?>">
+<button type="submit" class="relative w-14 h-8 rounded-full transition <?php echo $on ? 'bg-[#7c6cff]' : 'bg-white/10 border border-white/15'; ?>">
 <span class="absolute top-1 <?php echo $on ? 'right-1' : 'left-1'; ?> w-6 h-6 bg-white rounded-full transition shadow"></span>
 </button></form>
 </div>
@@ -71,9 +71,9 @@ elseif(isset($_GET['err'])){
 </div>
 </div>
 <?php endif; ?>
-<div class="grid md:grid-cols-2 gap-2"><?php foreach($all as $d): $rank++; ?><div class="card p-3 card-hover <?php echo $d['role']=='super'?'border-[#1fae76]/25':''; ?>"><div class="flex justify-between items-start"><div><b><?php echo $d['role']=='super' ? '👑 ' : (isset($medals[$rank-1]) ? $medals[$rank-1].' ' : ''); ?><?php echo htmlspecialchars($d['name']); ?></b> <?php if($d['role']=='super'): ?><span class="text-[9px] bg-[#1fae76]/15 text-[#1fae76] px-2 py-0.5 rounded-full font-black align-middle">BOSH ADMIN</span><?php endif; ?><br><span class="text-xs text-white/40"><?php echo htmlspecialchars($d['login']); ?> - <?php echo $d['cnt']; ?> ta tasdiqlangan<?php if($d['pcnt']>0): ?> • <span class="text-[#1fae76]">⏳ <?php echo $d['pcnt']; ?> kutilmoqda</span><?php endif; ?></span></div><?php if($d['role']!='super'): ?><form method="post" onsubmit="return confirm('Ochirish?')"><input type="hidden" name="del_id" value="<?php echo $d['id']; ?>"><button class="text-red-400">🗑</button></form><?php endif; ?></div>
+<div class="grid md:grid-cols-2 gap-2"><?php foreach($all as $d): $rank++; ?><div class="card p-3 card-hover <?php echo $d['role']=='super'?'border-[#7c6cff]/25':''; ?>"><div class="flex justify-between items-start"><div><b><?php echo $d['role']=='super' ? '👑 ' : (isset($medals[$rank-1]) ? $medals[$rank-1].' ' : ''); ?><?php echo htmlspecialchars($d['name']); ?></b> <?php if($d['role']=='super'): ?><span class="text-[9px] bg-[#7c6cff]/15 text-[#7c6cff] px-2 py-0.5 rounded-full font-black align-middle">BOSH ADMIN</span><?php endif; ?><br><span class="text-xs text-white/40"><?php echo htmlspecialchars($d['login']); ?> - <?php echo $d['cnt']; ?> ta tasdiqlangan<?php if($d['pcnt']>0): ?> • <span class="text-[#7c6cff]">⏳ <?php echo $d['pcnt']; ?> kutilmoqda</span><?php endif; ?></span></div><?php if($d['role']!='super'): ?><form method="post" onsubmit="return confirm('Ochirish?')"><input type="hidden" name="del_id" value="<?php echo $d['id']; ?>"><button class="text-red-400">🗑</button></form><?php endif; ?></div>
 <form method="post" class="flex gap-2 mt-2" onsubmit="return confirm('Bu diller uchun yangi parol o\'rnatilsinmi?')"><input type="hidden" name="reset_id" value="<?php echo $d['id']; ?>"><input name="reset_pass" placeholder="Yangi parol" class="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 text-white text-xs"><button class="bg-white/10 border border-white/10 px-3 rounded-lg text-xs whitespace-nowrap">Parolni almashtirish</button></form>
-<form method="post" class="flex gap-2 mt-2" onsubmit="return confirm('Login shu qiymatga almashtirilsinmi?')"><input type="hidden" name="login_id" value="<?php echo $d['id']; ?>"><input name="new_login_val" placeholder="Yangi login" value="<?php echo htmlspecialchars($d['login']); ?>" class="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 text-white text-xs"><button class="bg-[#1fae76]/10 border border-[#1fae76]/20 text-[#1fae76] px-3 rounded-lg text-xs whitespace-nowrap">Loginni almashtirish</button></form>
+<form method="post" class="flex gap-2 mt-2" onsubmit="return confirm('Login shu qiymatga almashtirilsinmi?')"><input type="hidden" name="login_id" value="<?php echo $d['id']; ?>"><input name="new_login_val" placeholder="Yangi login" value="<?php echo htmlspecialchars($d['login']); ?>" class="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 text-white text-xs"><button class="bg-[#7c6cff]/10 border border-[#7c6cff]/20 text-[#7c6cff] px-3 rounded-lg text-xs whitespace-nowrap">Loginni almashtirish</button></form>
 </div><?php endforeach; ?></div>
 <?php if($toast): ?><div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[999] max-w-sm w-[92%] shadow-2xl"><?php echo $toast; ?></div>
 <script>setTimeout(function(){ var t=document.getElementById('toast'); if(t){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); },400); } },4000);</script><?php endif; ?>

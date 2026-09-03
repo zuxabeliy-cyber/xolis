@@ -1,4 +1,4 @@
-<?php require_once __DIR__.'/config.php'; requireLogin(); $u=$_SESSION['user']; $isSuper=($u['role']=='super'); $myCount=0; try{ $s=db()->prepare("SELECT COUNT(*) FROM paid_participants WHERE dealer_id=?"); $s->execute([$u['id']]); $myCount=$s->fetchColumn(); }catch(Exception $e){} $displayRole = $isSuper ? 'BOSH ADMIN' : 'DILLER'; $current = basename($_SERVER['PHP_SELF']); function navClass($file){ global $current; return $current==$file ? 'bg-white/[0.07] border-white/10 text-white shadow-[inset_2px_0_0_0_#1fae76]' : 'hover:bg-white/[0.04] border-transparent text-white/60 hover:text-white'; }
+<?php require_once __DIR__.'/config.php'; requireLogin(); $u=$_SESSION['user']; $isSuper=($u['role']=='super'); $myCount=0; try{ $s=db()->prepare("SELECT COUNT(*) FROM paid_participants WHERE dealer_id=?"); $s->execute([$u['id']]); $myCount=$s->fetchColumn(); }catch(Exception $e){} $displayRole = $isSuper ? 'BOSH ADMIN' : 'DILLER'; $current = basename($_SERVER['PHP_SELF']); function navClass($file){ global $current; return $current==$file ? 'bg-white/[0.07] border-white/10 text-white shadow-[inset_2px_0_0_0_#7c6cff]' : 'hover:bg-white/[0.04] border-transparent text-white/60 hover:text-white'; }
 function icon($name,$class='w-4 h-4'){
  $p=[
   'menu'=>'<path d="M3 6h18M3 12h18M3 18h18"/>',
@@ -31,32 +31,33 @@ function icon($name,$class='w-4 h-4'){
 }
 ?>
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0a0a12"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="XOLIS"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="logo.png">
 <script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Manrope:wght@500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
-*{scrollbar-width:thin;scrollbar-color:rgba(31,174,118,.35) transparent}
+*{scrollbar-width:thin;scrollbar-color:rgba(124,108,255,.35) transparent}
 ::-webkit-scrollbar{width:8px;height:8px}
-::-webkit-scrollbar-thumb{background:rgba(31,174,118,.3);border-radius:8px}
-body{background:#0d100c;color:#efece3;font-family:Manrope,system-ui,sans-serif;letter-spacing:-.01em}
+::-webkit-scrollbar-thumb{background:rgba(124,108,255,.3);border-radius:8px}
+body{background:#0a0a12;color:#eceaf6;font-family:Manrope,system-ui,sans-serif;letter-spacing:-.01em}
 h1,h3{font-family:'Fraunces',serif;letter-spacing:-.01em}
 h2{font-family:'IBM Plex Mono',monospace !important;letter-spacing:.14em !important}
-.card{position:relative;background:linear-gradient(155deg,rgba(23,34,25,.55),rgba(13,16,12,.55));backdrop-filter:blur(14px) saturate(130%);-webkit-backdrop-filter:blur(14px) saturate(130%);border:1px solid rgba(239,236,227,.08);border-radius:20px;box-shadow:0 4px 24px -8px rgba(0,0,0,.55)}
-.card::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(155deg,rgba(201,162,75,.16),transparent 40%,transparent 70%,rgba(31,174,118,.14));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.card{position:relative;background:linear-gradient(155deg,rgba(22,22,42,.55),rgba(10,10,18,.55));backdrop-filter:blur(14px) saturate(130%);-webkit-backdrop-filter:blur(14px) saturate(130%);border:1px solid rgba(236,234,246,.08);border-radius:20px;box-shadow:0 4px 24px -8px rgba(0,0,0,.55)}
+.card::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(155deg,rgba(245,166,35,.16),transparent 40%,transparent 70%,rgba(124,108,255,.14));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .card-hover{transition:.35s cubic-bezier(.2,.8,.2,1)}
-.card-hover:hover{border-color:rgba(31,174,118,.4);transform:translateY(-3px);box-shadow:0 14px 34px -12px rgba(31,174,118,.28)}
-.bg-mesh{background:radial-gradient(at 12% 0%, rgba(31,174,118,.13) 0px, transparent 45%),radial-gradient(at 100% 15%, rgba(201,162,75,.06) 0px, transparent 40%),radial-gradient(at 50% 100%, rgba(11,61,44,.16) 0px, transparent 48%), #0d100c;background-attachment:fixed}
+.card-hover:hover{border-color:rgba(124,108,255,.4);transform:translateY(-3px);box-shadow:0 14px 34px -12px rgba(124,108,255,.28)}
+.bg-mesh{background:radial-gradient(at 12% 0%, rgba(124,108,255,.13) 0px, transparent 45%),radial-gradient(at 100% 15%, rgba(245,166,35,.06) 0px, transparent 40%),radial-gradient(at 50% 100%, rgba(36,27,82,.16) 0px, transparent 48%), #0a0a12;background-attachment:fixed}
 input,select,textarea{color:#fff !important}
 input::placeholder{color:rgba(255,255,255,.35) !important}
-.btn-glow{box-shadow:0 4px 20px -4px rgba(31,174,118,.35);transition:.2s}
-.btn-glow:hover{box-shadow:0 6px 26px -4px rgba(31,174,118,.55);transform:translateY(-1px)}
-.grad-text{background:linear-gradient(90deg,#1fae76,#e7c878,#1fae76);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gradflow 6s ease-in-out infinite;font-family:'IBM Plex Mono',monospace}
+.btn-glow{box-shadow:0 4px 20px -4px rgba(124,108,255,.35);transition:.2s}
+.btn-glow:hover{box-shadow:0 6px 26px -4px rgba(124,108,255,.55);transform:translateY(-1px)}
+.grad-text{background:linear-gradient(90deg,#7c6cff,#ffcf7a,#7c6cff);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gradflow 6s ease-in-out infinite;font-family:'IBM Plex Mono',monospace}
 @keyframes gradflow{ 0%,100%{ background-position:0% center; } 50%{ background-position:100% center; } }
 
 /* === BARABAN — vault dial === */
 @keyframes drumspin{ from{ transform:rotate(0deg); } to{ transform:rotate(2160deg); } }
 @keyframes drumpulse{
- 0%,100%{ box-shadow:0 0 0 0 rgba(201,162,75,.35), 0 0 70px -10px rgba(31,174,118,.35), inset 0 0 40px rgba(0,0,0,.7); }
- 50%{ box-shadow:0 0 0 14px rgba(201,162,75,0), 0 0 90px -10px rgba(31,174,118,.5), inset 0 0 40px rgba(0,0,0,.7); }
+ 0%,100%{ box-shadow:0 0 0 0 rgba(245,166,35,.35), 0 0 70px -10px rgba(124,108,255,.35), inset 0 0 40px rgba(0,0,0,.7); }
+ 50%{ box-shadow:0 0 0 14px rgba(245,166,35,0), 0 0 90px -10px rgba(124,108,255,.5), inset 0 0 40px rgba(0,0,0,.7); }
 }
 @keyframes drumglow{
  0%,100%{ opacity:.6; }
@@ -69,25 +70,25 @@ input::placeholder{color:rgba(255,255,255,.35) !important}
  position:relative; width:320px; height:320px;
  max-width:88vw; max-height:88vw;
  margin:0 auto; border-radius:50%;
- background:#0d100c;
- border:3px solid #c9a24b;
+ background:#0a0a12;
+ border:3px solid #f5a623;
  display:flex; align-items:center; justify-content:center;
  overflow:hidden;
- box-shadow:0 0 80px -15px rgba(31,174,118,.35), inset 0 0 50px rgba(0,0,0,.75), 0 0 0 9px rgba(201,162,75,.1), 0 0 0 10px rgba(201,162,75,.35);
+ box-shadow:0 0 80px -15px rgba(124,108,255,.35), inset 0 0 50px rgba(0,0,0,.75), 0 0 0 9px rgba(245,166,35,.1), 0 0 0 10px rgba(245,166,35,.35);
  transition:.3s;
 }
 #drum::before{
  content:''; position:absolute; inset:0; border-radius:50%; z-index:0;
  background:
-  repeating-conic-gradient(from 0deg, rgba(239,236,227,.9) 0deg 1.2deg, transparent 1.2deg 9deg),
-  conic-gradient(from 0deg, #1fae76 0%, #172219 28%, #0d100c 50%, #c9a24b 75%, #172219 92%, #1fae76 100%);
+  repeating-conic-gradient(from 0deg, rgba(236,234,246,.9) 0deg 1.2deg, transparent 1.2deg 9deg),
+  conic-gradient(from 0deg, #7c6cff 0%, #16162a 28%, #0a0a12 50%, #f5a623 75%, #16162a 92%, #7c6cff 100%);
  -webkit-mask:radial-gradient(circle, transparent 63%, #000 64%, #000 100%);
  mask:radial-gradient(circle, transparent 63%, #000 64%, #000 100%);
  opacity:.7;
 }
 #drum::after{
  content:''; position:absolute; top:-3px; left:50%; translate:-50% 0; z-index:2;
- width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-top:14px solid #c9a24b;
+ width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-top:14px solid #f5a623;
  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));
 }
 #drum.spinning{ animation:drumpulse 1.1s ease-in-out infinite; }
@@ -96,10 +97,10 @@ input::placeholder{color:rgba(255,255,255,.35) !important}
  position:relative; z-index:1;
  width:calc(100% - 44px); height:calc(100% - 44px);
  border-radius:50%;
- background:radial-gradient(circle at 40% 35%, #172219, #0d100c 70%);
+ background:radial-gradient(circle at 40% 35%, #16162a, #0a0a12 70%);
  display:flex; flex-direction:column; align-items:center; justify-content:center;
  text-align:center; padding:20px;
- border:1px solid rgba(201,162,75,.25);
+ border:1px solid rgba(245,166,35,.25);
 }
 #drum .drum-name{ font-size:1.2rem; font-weight:900; line-height:1.2; word-break:break-word; max-width:90%; font-family:'Fraunces',serif; }
 #drum .drum-phone{ font-size:.85rem; opacity:.55; margin-top:8px; font-family:'IBM Plex Mono',monospace; }
@@ -116,20 +117,20 @@ a,button{ transition:.25s cubic-bezier(.2,.8,.2,1); }
 button:active,.btn-glow:active{ transform:scale(.96); }
 #m.slide-in{ animation:fadeIn .2s; }
 nav a{ transition:.25s cubic-bezier(.2,.8,.2,1); }
-nav a:hover{ transform:translateX(4px); background:rgba(31,174,118,.06); }
+nav a:hover{ transform:translateX(4px); background:rgba(124,108,255,.06); }
 ::view-transition-old(root),::view-transition-new(root){ animation-duration:.25s; }
-::selection{ background:rgba(31,174,118,.35); color:#fff; }
+::selection{ background:rgba(124,108,255,.35); color:#fff; }
 @keyframes shimmer{ 0%{ background-position:-200% 0; } 100%{ background-position:200% 0; } }
 .shimmer-border{ position:relative; }
-.shimmer-border::after{ content:''; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(90deg,transparent,rgba(31,174,118,.5),transparent); background-size:200% 100%; -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); -webkit-mask-composite:xor; mask-composite:exclude; animation:shimmer 3s linear infinite; pointer-events:none; }
+.shimmer-border::after{ content:''; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(90deg,transparent,rgba(124,108,255,.5),transparent); background-size:200% 100%; -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); -webkit-mask-composite:xor; mask-composite:exclude; animation:shimmer 3s linear infinite; pointer-events:none; }
 .sticky.top-0{ animation:fadeIn .4s; }
 
 /* === Jadvallar (sitewide) === */
 table{width:100%; border-collapse:separate; border-spacing:0; font-size:.85rem}
-table th{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:rgba(239,236,227,.4); text-align:left; padding:12px 14px; border-bottom:1px solid rgba(201,162,75,.18); white-space:nowrap; background:rgba(201,162,75,.04); }
+table th{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:rgba(236,234,246,.4); text-align:left; padding:12px 14px; border-bottom:1px solid rgba(245,166,35,.18); white-space:nowrap; background:rgba(245,166,35,.04); }
 table td{ padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.055); vertical-align:middle; }
 table tr{ transition:background .18s ease; }
-table tr:hover{ background:rgba(31,174,118,.06); }
+table tr:hover{ background:rgba(124,108,255,.06); }
 table tr:last-child td{ border-bottom:none; }
 
 /* === Tugma va nishonchalar === */
@@ -138,23 +139,92 @@ table tr:last-child td{ border-bottom:none; }
 .btn-glow:hover::after{ background-position:-20% 0; }
 ::placeholder{opacity:.5}
 
+/* === Yagona tugma tizimi (button system) === */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; font-weight:800; border-radius:14px; padding:.7rem 1.15rem; font-size:.85rem; line-height:1; cursor:pointer; border:1px solid transparent; white-space:nowrap; transition:.22s cubic-bezier(.2,.8,.2,1); }
+.btn:active{ transform:scale(.96); }
+.btn-sm{ padding:.5rem .85rem; font-size:.78rem; border-radius:11px; }
+.btn-xs{ padding:.32rem .6rem; font-size:.68rem; border-radius:9px; }
+.btn-primary{ background:linear-gradient(90deg,#7c6cff,#9a8dff); color:#fff; box-shadow:0 6px 20px -6px rgba(124,108,255,.6); }
+.btn-primary:hover{ box-shadow:0 8px 26px -6px rgba(124,108,255,.8); transform:translateY(-1px); }
+.btn-gold{ background:linear-gradient(90deg,#f5a623,#ffcf7a); color:#1a1a1a; box-shadow:0 6px 20px -6px rgba(245,166,35,.55); }
+.btn-gold:hover{ transform:translateY(-1px); }
+.btn-light{ background:#fff; color:#000; }
+.btn-light:hover{ background:#eceaf6; }
+.btn-ghost{ background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.1); color:rgba(236,234,246,.85); }
+.btn-ghost:hover{ background:rgba(124,108,255,.12); border-color:rgba(124,108,255,.35); color:#fff; }
+.btn-danger{ background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.25); color:#fca5a5; }
+.btn-danger:hover{ background:rgba(239,68,68,.2); }
+.btn:disabled,.btn.is-loading{ opacity:.5; pointer-events:none; }
+/* fokus halqasi (klaviatura) */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{ outline:2px solid rgba(124,108,255,.6); outline-offset:2px; }
+
 /* === Konfetti === */
 .confetti-piece{ position:fixed; top:-12px; z-index:9999; pointer-events:none; border-radius:2px; will-change:transform,opacity; }
 @keyframes confettiFall{ to{ transform:translateY(105vh) rotate(var(--rot)); opacity:.15; } }
 @media (prefers-reduced-motion:reduce){ *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; } }
+
+/* === Kunduzgi (light) rejim === */
+.light body{ background:radial-gradient(at 12% 0%, rgba(124,108,255,.10) 0, transparent 45%),radial-gradient(at 100% 15%, rgba(245,166,35,.08) 0, transparent 40%), #f3f4fb !important; color:#1c1d2b; }
+.light .bg-mesh{ background:#f3f4fb; }
+.light .card{ background:#ffffff; border-color:rgba(0,0,0,.08); box-shadow:0 4px 20px -8px rgba(20,20,50,.15); }
+.light .card::before{ display:none; }
+.light input,.light select,.light textarea{ color:#1c1d2b !important; background:#eef0f7 !important; }
+.light input::placeholder,.light ::placeholder{ color:rgba(0,0,0,.4) !important; }
+.light .sticky.top-0{ background:rgba(255,255,255,.9) !important; border-color:rgba(0,0,0,.06) !important; }
+.light #m{ background:#ffffff !important; border-color:rgba(0,0,0,.08) !important; }
+.light .text-white{ color:#1c1d2b !important; }
+.light .text-white\/70{ color:rgba(28,29,43,.75) !important; }
+.light .text-white\/60{ color:rgba(28,29,43,.65) !important; }
+.light .text-white\/50{ color:rgba(28,29,43,.55) !important; }
+.light .text-white\/40{ color:rgba(28,29,43,.48) !important; }
+.light .text-white\/30{ color:rgba(28,29,43,.4) !important; }
+.light .text-white\/25{ color:rgba(28,29,43,.34) !important; }
+.light .text-white\/20{ color:rgba(28,29,43,.28) !important; }
+.light .bg-black,.light .bg-black\/50,.light .bg-black\/40,.light .bg-black\/30,.light .bg-black\/20{ background:#eef0f7 !important; }
+.light .bg-white\/5,.light .bg-white\/10,.light .bg-white\/\[0\.07\],.light .bg-white\/\[0\.04\],.light .bg-white\/\[0\.03\]{ background:rgba(20,20,50,.05) !important; }
+.light .border-white\/5,.light .border-white\/10,.light .border-white\/15,.light .border-white\/20{ border-color:rgba(20,20,50,.12) !important; }
+.light table th{ color:rgba(28,29,43,.5) !important; background:rgba(124,108,255,.06) !important; border-bottom-color:rgba(245,166,35,.3) !important; }
+.light table td{ border-bottom-color:rgba(0,0,0,.06) !important; }
+.light table tr:hover{ background:rgba(124,108,255,.06) !important; }
+.light .btn-light{ background:#1c1d2b; color:#fff; }
+.light .btn-ghost{ background:rgba(20,20,50,.05); border-color:rgba(20,20,50,.12); color:#1c1d2b; }
+.light .bg-white{ background:#1c1d2b !important; }
+.light .text-black{ color:#ffffff !important; }
+
+/* === 4D / animatsiya / yorqinlik === */
+body.bg-mesh::before{ content:''; position:fixed; inset:-25%; z-index:-1; pointer-events:none;
+ background:radial-gradient(circle at 20% 25%, rgba(124,108,255,.20), transparent 42%), radial-gradient(circle at 82% 72%, rgba(245,166,35,.14), transparent 42%), radial-gradient(circle at 55% 95%, rgba(154,141,255,.14), transparent 45%);
+ filter:blur(50px); animation:aurora 20s ease-in-out infinite alternate; }
+.light body.bg-mesh::before{ opacity:.5; }
+@keyframes aurora{ 0%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(4%,-3%) scale(1.12); } 100%{ transform:translate(-4%,3%) scale(1.06); } }
+.card-hover{ transform-style:preserve-3d; will-change:transform; }
+.card-hover:hover{ border-color:rgba(124,108,255,.45); box-shadow:0 18px 50px -14px rgba(124,108,255,.45), 0 0 0 1px rgba(124,108,255,.15) inset; }
+.btn-primary{ background-size:200% auto; animation:btnflow 5s ease-in-out infinite; }
+@keyframes btnflow{ 0%,100%{ background-position:0% center; } 50%{ background-position:100% center; } }
+.grad-text{ text-shadow:0 0 26px rgba(124,108,255,.35); }
+#drum{ box-shadow:0 0 90px -10px rgba(124,108,255,.5), inset 0 0 50px rgba(0,0,0,.75), 0 0 0 9px rgba(245,166,35,.12), 0 0 0 10px rgba(245,166,35,.4) !important; }
+.kpi-pop{ animation:kpiPop .6s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes kpiPop{ from{ opacity:0; transform:scale(.85) translateY(10px); } to{ opacity:1; transform:scale(1) translateY(0); } }
+.sheen{ position:relative; overflow:hidden; }
+.sheen::after{ content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(115deg,transparent,rgba(255,255,255,.14),transparent); transform:skewX(-18deg); animation:sheen 5.5s ease-in-out infinite; }
+@keyframes sheen{ 0%{ left:-60%; } 35%,100%{ left:130%; } }
+@media (prefers-reduced-motion:reduce){ body.bg-mesh::before,.btn-primary,.sheen::after{ animation:none !important; } }
 </style>
+<script>try{ if(localStorage.getItem('theme')==='light') document.documentElement.classList.add('light'); }catch(e){}</script>
 </head><body class="bg-mesh min-h-screen">
-<div class="sticky top-0 z-30 bg-[#0d100c]/85 backdrop-blur-xl border-b border-white/5 p-3 flex justify-between items-center">
-<div class="flex items-center gap-3"><button onclick="document.getElementById('m').classList.remove('-translate-x-full');document.getElementById('o').classList.remove('hidden')" class="w-11 h-11 bg-white/5 rounded-xl border border-white/10 relative flex items-center justify-center text-white/70"><?php echo icon('menu','w-5 h-5'); ?></button><img src="logo.png" class="anim-logo w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(31,174,118,.35)]"><div><div class="flex items-center gap-1.5"><h1 class="font-bold text-[14px] tracking-wide"><?php echo htmlspecialchars($u['name']); ?></h1><span class="inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-[2px] rounded-full <?php echo $isSuper ? 'bg-[#c9a24b]/10 text-[#c9a24b] border border-[#c9a24b]/20' : 'bg-[#1fae76]/10 text-[#1fae76] border border-[#1fae76]/20'; ?>"><?php echo icon($isSuper?'crown':'shield','w-2.5 h-2.5'); ?><?php echo $isSuper ? 'Admin' : 'Diller'; ?></span><a href="chat.php" title="Telegram" class="relative w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/60 shrink-0"><?php echo icon('message','w-3.5 h-3.5'); ?><span id="chatDot" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0d100c] badge-live"></span></a></div><p class="text-[9px] text-white/25 tracking-[0.15em] mt-0.5"><span class="grad-text">PAYNET XOLIS</span></p></div></div>
-<div class="flex items-center gap-2"><div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#1fae76] to-[#0b3d2c] ring-1 ring-[#c9a24b]/40 flex items-center justify-center font-black text-white text-sm"><?php echo mb_strtoupper(mb_substr($u['name'],0,1)); ?></div></div>
+<div class="sticky top-0 z-30 bg-[#0a0a12]/85 backdrop-blur-xl border-b border-white/5 p-3 flex justify-between items-center">
+<div class="flex items-center gap-3"><button onclick="document.getElementById('m').classList.remove('-translate-x-full');document.getElementById('o').classList.remove('hidden')" class="w-11 h-11 bg-white/5 rounded-xl border border-white/10 relative flex items-center justify-center text-white/70"><?php echo icon('menu','w-5 h-5'); ?></button><img src="logo.png" class="anim-logo w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(124,108,255,.35)]"><div><div class="flex items-center gap-1.5"><h1 class="font-bold text-[14px] tracking-wide"><?php echo htmlspecialchars($u['name']); ?></h1><span class="inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-[2px] rounded-full <?php echo $isSuper ? 'bg-[#f5a623]/10 text-[#f5a623] border border-[#f5a623]/20' : 'bg-[#7c6cff]/10 text-[#7c6cff] border border-[#7c6cff]/20'; ?>"><?php echo icon($isSuper?'crown':'shield','w-2.5 h-2.5'); ?><?php echo $isSuper ? 'Admin' : 'Diller'; ?></span><a href="chat.php" title="Telegram" class="relative w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/60 shrink-0"><?php echo icon('message','w-3.5 h-3.5'); ?><span id="chatDot" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a0a12] badge-live"></span></a></div><p class="text-[9px] text-white/25 tracking-[0.15em] mt-0.5"><span class="grad-text">PAYNET XOLIS</span></p></div></div>
+<div class="flex items-center gap-2"><button id="installBtn" type="button" onclick="doInstall()" title="Ilovani o'rnatish" style="display:none" class="w-9 h-9 rounded-xl bg-[#7c6cff]/15 border border-[#7c6cff]/30 text-[#7c6cff] flex items-center justify-center text-base">📲</button><button id="themeBtn" type="button" onclick="toggleTheme()" title="Kunduzgi/tungi rejim" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-base">🌙</button><div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#7c6cff] to-[#241b52] ring-1 ring-[#f5a623]/40 flex items-center justify-center font-black text-white text-sm"><?php echo mb_strtoupper(mb_substr($u['name'],0,1)); ?></div></div>
 </div>
 <div id="o" onclick="this.classList.add('hidden');document.getElementById('m').classList.add('-translate-x-full')" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
-<div id="m" class="fixed top-0 left-0 h-full w-[300px] bg-[#0d100c] border-r border-white/5 z-50 transform -translate-x-full transition-transform duration-300 overflow-auto">
-<div class="p-5 bg-[#172219] border-b border-white/5 flex items-center justify-between">
-<div class="flex gap-3 items-center"><img src="logo.png" class="w-12 h-12 object-contain"><div><div class="flex items-center gap-1.5"><p class="font-bold"><?php echo htmlspecialchars($u['name']); ?></p><span class="inline-flex items-center text-[#c9a24b] <?php echo $isSuper?'':'text-[#1fae76]'; ?>"><?php echo icon($isSuper?'crown':'shield','w-3.5 h-3.5'); ?></span></div><p class="text-xs font-bold text-[#1fae76]" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.1em"><?php echo $isSuper ? 'BOSH ADMIN' : 'DILLER'; ?></p></div></div>
+<div id="m" class="fixed top-0 left-0 h-full w-[300px] bg-[#0a0a12] border-r border-white/5 z-50 transform -translate-x-full transition-transform duration-300 overflow-auto">
+<div class="p-5 bg-[#16162a] border-b border-white/5 flex items-center justify-between">
+<div class="flex gap-3 items-center"><img src="logo.png" class="w-12 h-12 object-contain"><div><div class="flex items-center gap-1.5"><p class="font-bold"><?php echo htmlspecialchars($u['name']); ?></p><span class="inline-flex items-center text-[#f5a623] <?php echo $isSuper?'':'text-[#7c6cff]'; ?>"><?php echo icon($isSuper?'crown':'shield','w-3.5 h-3.5'); ?></span></div><p class="text-xs font-bold text-[#7c6cff]" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.1em"><?php echo $isSuper ? 'BOSH ADMIN' : 'DILLER'; ?></p></div></div>
 <a href="logout.php" title="Chiqish" class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/15 text-red-300 flex items-center justify-center shrink-0"><?php echo icon('logout','w-4 h-4'); ?></a>
 </div>
+<form action="participants.php" method="get" class="p-3 pb-0"><input name="q" placeholder="🔍 Nomer yoki ism qidirish..." class="w-full p-3 rounded-xl bg-black/50 border border-white/10 text-white text-sm outline-none focus:border-[#7c6cff]/50"></form>
 <nav class="p-3 space-y-1">
+<a href="dashboard.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('dashboard.php'); ?>"><?php echo icon('package'); ?> Bosh sahifa</a>
 <a href="reports.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('reports.php'); ?>"><?php echo icon('chart'); ?> Statistika</a>
 <a href="participants.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('participants.php'); ?>"><?php echo icon('list'); ?> Ro'yxat</a>
 <a href="balance.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('balance.php'); ?>"><?php echo icon('wallet'); ?> So'm</a>
@@ -165,7 +235,10 @@ table tr:last-child td{ border-bottom:none; }
 <a href="chat.php" class="flex gap-3 p-3 rounded-xl border justify-between items-center <?php echo navClass('chat.php'); ?>"><span class="flex gap-3 items-center"><?php echo icon('message'); ?> Telegram</span></a>
 <?php if($isSuper): ?><a href="dealers.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('dealers.php'); ?>"><?php echo icon('users'); ?> Dillerlar</a>
 <a href="operators.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('operators.php'); ?>"><?php echo icon('radio'); ?> Tarif</a>
-<a href="settings.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('settings.php'); ?>"><?php echo icon('gear'); ?> Sozlama</a><?php endif; ?>
+<a href="settings.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('settings.php'); ?>"><?php echo icon('gear'); ?> Sozlama</a>
+<a href="duplicates.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('duplicates.php'); ?>"><?php echo icon('undo'); ?> Dublikatlar</a>
+<a href="activity.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('activity.php'); ?>"><?php echo icon('hourglass'); ?> Faollik jurnali</a><?php endif; ?>
+<a href="trash.php" class="flex gap-3 p-3 rounded-xl border justify-between items-center <?php echo navClass('trash.php'); ?>"><span class="flex gap-3 items-center"><?php echo icon('trash'); ?> Chiqindi</span><?php if($isSuper){ $tc=trashCount(); if($tc>0): ?><span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-white/10 text-white/60"><?php echo $tc; ?></span><?php endif; } ?></a>
 <a href="profile.php" class="flex gap-3 p-3 rounded-xl border items-center <?php echo navClass('profile.php'); ?>"><?php echo icon('user'); ?> Profil</a>
 </nav></div>
 <script>
@@ -178,10 +251,44 @@ function pollChatDot(){
 pollChatDot();
 setInterval(pollChatDot, 15000);
 
+function updThemeIcon(){ var b=document.getElementById('themeBtn'); if(b) b.textContent=document.documentElement.classList.contains('light')?'☀️':'🌙'; }
+function toggleTheme(){ var h=document.documentElement; h.classList.toggle('light'); try{ localStorage.setItem('theme', h.classList.contains('light')?'light':'dark'); }catch(e){} updThemeIcon(); }
+updThemeIcon();
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+
+// === Ilovani o'rnatish (PWA install) ===
+var deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferredPrompt=e; var b=document.getElementById('installBtn'); if(b) b.style.display='flex'; });
+function doInstall(){
+ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.finally(function(){ deferredPrompt=null; var b=document.getElementById('installBtn'); if(b) b.style.display='none'; }); return; }
+ var iOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+ alert(iOS ? "iPhone: pastdagi 'Ulashish' (⬆️) tugmasini bosing → 'Ekranga qo'shish' (Add to Home Screen)." : "Menyu (⋮) ni oching → 'Ilovani o'rnatish' / 'Add to Home screen' ni tanlang.");
+}
+window.addEventListener('appinstalled',function(){ var b=document.getElementById('installBtn'); if(b) b.style.display='none'; });
+
+// === 4D karta tilt (sichqoncha bilan) ===
+(function(){
+ if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+ if(window.matchMedia && window.matchMedia('(hover: none)').matches) return; // telefonlarda o'chirilgan
+ function bind(){ document.querySelectorAll('.card-hover').forEach(function(c){ if(c._tilt) return; c._tilt=1;
+  c.addEventListener('mousemove',function(e){ var r=c.getBoundingClientRect(); var x=(e.clientX-r.left)/r.width-0.5, y=(e.clientY-r.top)/r.height-0.5; c.style.transform='perspective(800px) rotateY('+(x*7).toFixed(2)+'deg) rotateX('+(-y*7).toFixed(2)+'deg) translateY(-4px)'; });
+  c.addEventListener('mouseleave',function(){ c.style.transform=''; });
+ }); }
+ document.addEventListener('DOMContentLoaded',bind); bind();
+})();
+// === Raqamlar animatsiyasi (count-up) ===
+(function(){
+ function run(){ document.querySelectorAll('[data-count]').forEach(function(el){ if(el._done) return; el._done=1; var target=parseFloat(el.getAttribute('data-count'))||0; if(target<=0){ el.textContent='0'; return; } var dur=900,start=null;
+  function step(now){ if(!start) start=now; var p=Math.min((now-start)/dur,1); var v=Math.floor(target*(1-Math.pow(1-p,3))); el.textContent=v.toLocaleString('ru-RU'); if(p<1) requestAnimationFrame(step); else el.textContent=Math.round(target).toLocaleString('ru-RU'); }
+  requestAnimationFrame(step);
+ }); }
+ document.addEventListener('DOMContentLoaded',run); run();
+})();
+
 function confettiBurst(x, y){
  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
  x = x || window.innerWidth/2; y = y || window.innerHeight/2;
- var colors=['#1fae76','#c9a24b','#e7c878','#37c98b','#efece3'];
+ var colors=['#7c6cff','#f5a623','#ffcf7a','#9a8dff','#eceaf6'];
  for(var i=0;i<70;i++){
   var el=document.createElement('div');
   el.className='confetti-piece';

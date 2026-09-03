@@ -62,8 +62,8 @@ include 'layout_header.php';
   <label class="w-11 h-11 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center cursor-pointer hover:bg-white/10 transition">
    📎<input type="file" id="chatImage" accept="image/*" class="hidden" onchange="previewImage(this)">
   </label>
-  <textarea id="chatText" rows="1" placeholder="Xabar yozing..." class="flex-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none resize-none focus:border-[#1fae76]/50"></textarea>
-  <button type="submit" class="w-11 h-11 shrink-0 rounded-xl bg-[#1fae76] text-white font-black btn-glow">➤</button>
+  <textarea id="chatText" rows="1" placeholder="Xabar yozing..." class="flex-1 p-3 rounded-xl bg-black/50 border border-white/10 text-white outline-none resize-none focus:border-[#7c6cff]/50"></textarea>
+  <button type="submit" class="w-11 h-11 shrink-0 rounded-xl bg-[#7c6cff] text-white font-black btn-glow">➤</button>
  </form>
 </div>
 
@@ -78,8 +78,8 @@ function renderMsg(m){
  const body = document.getElementById('chatBody');
  const wrap = document.createElement('div');
  wrap.className = 'flex ' + (mine ? 'justify-end' : 'justify-start');
- let inner = `<div class="max-w-[75%] ${mine?'bg-[#1fae76] text-white':'bg-white/[0.06] border border-white/10 text-white'} rounded-2xl px-4 py-2.5">`;
- if(!mine) inner += `<p class="text-[10px] font-black ${mine?'text-black/60':'text-[#1fae76]'} mb-0.5">${escapeHtml(m.sender_name)}</p>`;
+ let inner = `<div class="max-w-[75%] ${mine?'bg-[#7c6cff] text-white':'bg-white/[0.06] border border-white/10 text-white'} rounded-2xl px-4 py-2.5">`;
+ if(!mine) inner += `<p class="text-[10px] font-black ${mine?'text-black/60':'text-[#7c6cff]'} mb-0.5">${escapeHtml(m.sender_name)}</p>`;
  if(m.image_path) inner += `<img src="${escapeHtml(m.image_path)}" class="rounded-xl mb-1 max-h-64 object-cover cursor-pointer" onclick="window.open('${escapeHtml(m.image_path)}','_blank')">`;
  if(m.message) inner += `<p class="text-sm whitespace-pre-wrap break-words">${escapeHtml(m.message)}</p>`;
  inner += `<p class="text-[9px] ${mine?'text-black/50':'text-white/30'} mt-1 text-right">${fmtTime(m.created_at)}</p></div>`;
