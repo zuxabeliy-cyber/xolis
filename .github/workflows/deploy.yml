@@ -1,0 +1,62 @@
+name: SSH Deploy (rsync + Composer)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP & Composer (if needed)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Install Composer dependencies (if composer.json exists)
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-dev --prefer-dist --optimize-autoloader;
+          else
+            echo "No composer.json, skipping composer install.";
+          fi
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          # add server to known_hosts to avoid prompt
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Rsync to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          TARGET_DIR: ${{ secrets.TARGET_DIR }}
+        run: |
+          SSH_OPTS="-i ~/.ssh/id_rsa -o StrictHostKeyChecking=no"
+          if [ -n "$SERVER_PORT" ]; then SSH_OPTS="$SSH_OPTS -p $SERVER_PORT"; fi
+          RSYNC_RSH="ssh $SSH_OPTS"
+          echo "Using rsync via: $RSYNC_RSH"
+          rsync -az --delete --exclude='.git' -e "$RSYNC_RSH" ./ "$SERVER_USER@$SERVER_HOST:$TARGET_DIR"
+
+      - name: (optional) Run composer on server if you prefer server-side install
+        if: ${{ always() }}
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          TARGET_DIR: ${{ secrets.TARGET_DIR }}
+        run: |
+          # This step is optional — it will try to run composer on the server only if composer.json exists in the deployed directory.
+          # Uncomment the ssh command below if you want the Action to run composer on the server instead of in the Action runner.
+          echo "To run composer on the server, uncomment the ssh command in this step." 
+          # Example (uncomment to enable):
+          # SSH_CMD="ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no"
+          # if [ -n "$SERVER_PORT" ]; then SSH_CMD="$SSH_CMD -p $SERVER_PORT"; fi
+          # $SSH_CMD "$SERVER_USER@$SERVER_HOST" "cd $TARGET_DIR && if [ -f composer.json ]; then composer install --no-dev --prefer-dist --optimize-autoloader; fi"
